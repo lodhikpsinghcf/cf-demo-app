@@ -1,326 +1,343 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
 import { useState } from 'react';
 import { CFSlot } from '../../components/CFSlot';
 import { useContentFlow } from '../../providers/ContentFlowProvider';
 
+const { width } = Dimensions.get('window');
+
 export default function FoodScreen() {
   const { trackEvent } = useContentFlow();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const handleRestaurantTap = (name: string) => {
     trackEvent('restaurant_tap', { restaurant: name, screen: 'food' });
   };
 
+  const categories = [
+    { id: 'all', icon: '🍽️', label: 'All' },
+    { id: 'pizza', icon: '🍕', label: 'Pizza' },
+    { id: 'burger', icon: '🍔', label: 'Burgers' },
+    { id: 'sushi', icon: '🍣', label: 'Sushi' },
+    { id: 'arabic', icon: '🥙', label: 'Arabic' },
+    { id: 'asian', icon: '🍜', label: 'Asian' },
+    { id: 'healthy', icon: '🥗', label: 'Healthy' },
+  ];
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search restaurants, cuisines..."
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#888"
-        />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.deliverTo}>Deliver to</Text>
+          <TouchableOpacity style={styles.locationRow}>
+            <Text style={styles.locationIcon}>📍</Text>
+            <Text style={styles.location}>King Fahd Road, Riyadh</Text>
+            <Text style={styles.dropdownIcon}>▼</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.cartBtn}>
+          <Text style={styles.cartIcon}>🛒</Text>
+          <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>2</Text></View>
+        </TouchableOpacity>
       </View>
 
-      {/* Food Hero Slot */}
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search restaurants, cuisines..."
+            value={search}
+            onChangeText={setSearch}
+            placeholderTextColor="#888"
+          />
+        </View>
+        <TouchableOpacity style={styles.filterBtn}>
+          <Text style={styles.filterIcon}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Categories */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
+        {categories.map(cat => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[styles.categoryPill, selectedCategory === cat.id && styles.categoryPillActive]}
+            onPress={() => setSelectedCategory(cat.id)}
+          >
+            <Text style={styles.categoryEmoji}>{cat.icon}</Text>
+            <Text style={[styles.categoryLabel, selectedCategory === cat.id && styles.categoryLabelActive]}>{cat.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Food Promo Slot - contextual, after categories */}
       <CFSlot slotId="food-hero" style={styles.heroSlot}>
         <View style={styles.heroPlaceholder}>
-          <Text style={styles.heroEmoji}>🍔</Text>
-          <Text style={styles.heroText}>Food promotions appear here</Text>
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>Free Delivery</Text>
+            <Text style={styles.heroSubtitle}>On orders above SAR 50</Text>
+          </View>
+          <Text style={styles.heroEmoji}>🚀</Text>
         </View>
       </CFSlot>
 
-      {/* Categories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-        <CategoryPill emoji="🍕" label="Pizza" active />
-        <CategoryPill emoji="🍔" label="Burgers" />
-        <CategoryPill emoji="🍣" label="Sushi" />
-        <CategoryPill emoji="🌮" label="Mexican" />
-        <CategoryPill emoji="🍜" label="Asian" />
-        <CategoryPill emoji="🥗" label="Healthy" />
-        <CategoryPill emoji="☕" label="Coffee" />
-      </ScrollView>
-
       {/* Featured Restaurants */}
-      <Text style={styles.sectionTitle}>Featured Restaurants</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.featuredScroll}>
-        <FeaturedRestaurant
-          name="Burger Palace"
-          cuisine="American"
-          rating={4.8}
-          time="20-30 min"
-          emoji="🍔"
-          onTap={() => handleRestaurantTap('Burger Palace')}
-        />
-        <FeaturedRestaurant
-          name="Sushi Master"
-          cuisine="Japanese"
-          rating={4.9}
-          time="25-35 min"
-          emoji="🍣"
-          onTap={() => handleRestaurantTap('Sushi Master')}
-        />
-        <FeaturedRestaurant
-          name="Pizza Roma"
-          cuisine="Italian"
-          rating={4.7}
-          time="30-40 min"
-          emoji="🍕"
-          onTap={() => handleRestaurantTap('Pizza Roma')}
-        />
-      </ScrollView>
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Featured Near You</Text>
+          <TouchableOpacity><Text style={styles.viewAll}>See all</Text></TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+          <FeaturedCard name="Al Baik" cuisine="Fried Chicken" rating={4.8} time="15-25" price="$" image="🍗" onTap={() => handleRestaurantTap('Al Baik')} />
+          <FeaturedCard name="The Butcher Shop" cuisine="Steakhouse" rating={4.7} time="30-40" price="$$$" image="🥩" onTap={() => handleRestaurantTap('The Butcher Shop')} />
+          <FeaturedCard name="Pizza Hut" cuisine="Pizza" rating={4.5} time="25-35" price="$$" image="🍕" onTap={() => handleRestaurantTap('Pizza Hut')} />
+        </ScrollView>
+      </View>
 
-      {/* Food Promo Slot */}
+      {/* Restaurant Promo Slot */}
       <CFSlot slotId="food-promo" style={styles.promoSlot}>
         <View style={styles.promoPlaceholder}>
-          <Text style={styles.promoText}>🎁 Special offers & discounts</Text>
+          <Text style={styles.promoIcon}>🎁</Text>
+          <View style={styles.promoContent}>
+            <Text style={styles.promoTitle}>50% Off Your First Order</Text>
+            <Text style={styles.promoSubtitle}>Use code: FIRST50</Text>
+          </View>
         </View>
       </CFSlot>
 
       {/* Nearby Restaurants */}
-      <Text style={styles.sectionTitle}>Nearby You</Text>
-      <View style={styles.restaurantList}>
-        <RestaurantRow
-          name="Al Baik"
-          cuisine="Fast Food • Chicken"
-          rating={4.6}
-          time="15-20 min"
-          price="$"
-          emoji="🍗"
-          onTap={() => handleRestaurantTap('Al Baik')}
-        />
-        <RestaurantRow
-          name="Shawarma House"
-          cuisine="Middle Eastern"
-          rating={4.5}
-          time="20-25 min"
-          price="$$"
-          emoji="🥙"
-          onTap={() => handleRestaurantTap('Shawarma House')}
-        />
-        <RestaurantRow
-          name="Kudu Coffee"
-          cuisine="Cafe • Breakfast"
-          rating={4.4}
-          time="10-15 min"
-          price="$$"
-          emoji="☕"
-          onTap={() => handleRestaurantTap('Kudu Coffee')}
-        />
-        <RestaurantRow
-          name="Nando's"
-          cuisine="Portuguese • Chicken"
-          rating={4.3}
-          time="25-30 min"
-          price="$$"
-          emoji="🔥"
-          onTap={() => handleRestaurantTap("Nando's")}
-        />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitlePadded}>Popular Restaurants</Text>
+        <View style={styles.restaurantList}>
+          <RestaurantRow name="Shawarma House" cuisine="Middle Eastern • Arabic" rating={4.6} time="20-30" price="$" image="🥙" onTap={() => handleRestaurantTap('Shawarma House')} />
+          <RestaurantRow name="Kudu" cuisine="Fast Food • Breakfast" rating={4.4} time="10-20" price="$" image="☕" onTap={() => handleRestaurantTap('Kudu')} />
+          <RestaurantRow name="Maestro Pizza" cuisine="Italian • Pizza" rating={4.5} time="25-35" price="$$" image="🍕" onTap={() => handleRestaurantTap('Maestro Pizza')} />
+          <RestaurantRow name="Nando's" cuisine="Portuguese • Chicken" rating={4.3} time="30-40" price="$$" image="🔥" onTap={() => handleRestaurantTap("Nando's")} />
+        </View>
       </View>
 
+      {/* Cuisines Slot */}
+      <CFSlot slotId="food-cuisines" style={styles.cuisinesSlot}>
+        <View style={styles.cuisinesPlaceholder}>
+          <Text style={styles.cuisinesIcon}>🌍</Text>
+          <View style={styles.cuisinesContent}>
+            <Text style={styles.cuisinesTitle}>Explore World Cuisines</Text>
+            <Text style={styles.cuisinesSubtitle}>Japanese, Italian, Indian & more</Text>
+          </View>
+          <View style={styles.cuisinesArrow}><Text style={styles.arrowText}>→</Text></View>
+        </View>
+      </CFSlot>
+
       {/* Active Order */}
-      <Text style={styles.sectionTitle}>Active Order</Text>
-      <View style={styles.orderCard}>
-        <View style={styles.orderHeader}>
-          <View>
-            <Text style={styles.orderRestaurant}>Burger Palace</Text>
-            <Text style={styles.orderItems}>2x Cheeseburger, 1x Fries</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitlePadded}>Active Order</Text>
+        <View style={styles.orderCard}>
+          <View style={styles.orderHeader}>
+            <View style={styles.orderInfo}>
+              <Text style={styles.orderRestaurant}>Al Baik</Text>
+              <Text style={styles.orderItems}>2x Chicken Meal, 1x Shrimp</Text>
+            </View>
+            <View style={styles.orderStatus}><Text style={styles.orderStatusText}>Preparing</Text></View>
           </View>
-          <View style={styles.orderStatus}>
-            <Text style={styles.orderStatusText}>Preparing</Text>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '45%' }]} />
+            </View>
+            <View style={styles.progressSteps}>
+              <View style={styles.progressStep}>
+                <View style={[styles.stepDot, styles.stepDotComplete]} />
+                <Text style={styles.stepLabel}>Confirmed</Text>
+              </View>
+              <View style={styles.progressStep}>
+                <View style={[styles.stepDot, styles.stepDotActive]} />
+                <Text style={styles.stepLabel}>Preparing</Text>
+              </View>
+              <View style={styles.progressStep}>
+                <View style={styles.stepDot} />
+                <Text style={styles.stepLabel}>On the way</Text>
+              </View>
+              <View style={styles.progressStep}>
+                <View style={styles.stepDot} />
+                <Text style={styles.stepLabel}>Delivered</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.orderFooter}>
+            <Text style={styles.orderEta}>Arriving in ~18 min</Text>
+            <TouchableOpacity style={styles.trackBtn}>
+              <Text style={styles.trackBtnText}>Track Order</Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.orderProgress}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '40%' }]} />
-          </View>
-          <Text style={styles.orderEta}>Arrives in ~15 min</Text>
-        </View>
-        <TouchableOpacity style={styles.trackBtn}>
-          <Text style={styles.trackBtnText}>Track Order</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Bottom Slot */}
-      <CFSlot slotId="food-bottom" style={styles.bottomSlot} />
+      <CFSlot slotId="food-bottom" style={styles.bottomSlot}>
+        <View style={styles.bottomPlaceholder}>
+          <Text style={styles.bottomIcon}>⭐</Text>
+          <Text style={styles.bottomText}>Loyalty rewards & perks</Text>
+        </View>
+      </CFSlot>
+
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
 
-function CategoryPill({ emoji, label, active }: { emoji: string; label: string; active?: boolean }) {
-  return (
-    <TouchableOpacity style={[styles.categoryPill, active && styles.categoryPillActive]}>
-      <Text style={styles.categoryEmoji}>{emoji}</Text>
-      <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function FeaturedRestaurant({ name, cuisine, rating, time, emoji, onTap }: {
-  name: string; cuisine: string; rating: number; time: string; emoji: string; onTap: () => void;
+function FeaturedCard({ name, cuisine, rating, time, price, image, onTap }: {
+  name: string; cuisine: string; rating: number; time: string; price: string; image: string; onTap: () => void;
 }) {
   return (
     <TouchableOpacity style={styles.featuredCard} onPress={onTap}>
       <View style={styles.featuredImage}>
-        <Text style={styles.featuredEmoji}>{emoji}</Text>
+        <Text style={styles.featuredEmoji}>{image}</Text>
+        <View style={styles.featuredRating}>
+          <Text style={styles.ratingText}>⭐ {rating}</Text>
+        </View>
       </View>
       <View style={styles.featuredInfo}>
         <Text style={styles.featuredName}>{name}</Text>
         <Text style={styles.featuredCuisine}>{cuisine}</Text>
         <View style={styles.featuredMeta}>
-          <Text style={styles.featuredRating}>⭐ {rating}</Text>
-          <Text style={styles.featuredTime}>{time}</Text>
+          <Text style={styles.metaText}>{time} min</Text>
+          <Text style={styles.metaDot}>•</Text>
+          <Text style={styles.metaPrice}>{price}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-function RestaurantRow({ name, cuisine, rating, time, price, emoji, onTap }: {
-  name: string; cuisine: string; rating: number; time: string; price: string; emoji: string; onTap: () => void;
+function RestaurantRow({ name, cuisine, rating, time, price, image, onTap }: {
+  name: string; cuisine: string; rating: number; time: string; price: string; image: string; onTap: () => void;
 }) {
   return (
     <TouchableOpacity style={styles.restaurantRow} onPress={onTap}>
-      <View style={styles.restaurantEmoji}>
-        <Text style={{ fontSize: 28 }}>{emoji}</Text>
+      <View style={styles.restaurantImage}>
+        <Text style={styles.restaurantEmoji}>{image}</Text>
       </View>
       <View style={styles.restaurantInfo}>
         <Text style={styles.restaurantName}>{name}</Text>
         <Text style={styles.restaurantCuisine}>{cuisine}</Text>
         <View style={styles.restaurantMeta}>
-          <Text style={styles.restaurantRating}>⭐ {rating}</Text>
-          <Text style={styles.restaurantTime}>{time}</Text>
-          <Text style={styles.restaurantPrice}>{price}</Text>
+          <Text style={styles.metaText}>⭐ {rating}</Text>
+          <Text style={styles.metaDot}>•</Text>
+          <Text style={styles.metaText}>{time} min</Text>
+          <Text style={styles.metaDot}>•</Text>
+          <Text style={styles.metaPrice}>{price}</Text>
         </View>
       </View>
+      <Text style={styles.restaurantArrow}>›</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  searchBar: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    margin: 16,
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
+  deliverTo: { fontSize: 12, color: '#888' },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  locationIcon: { fontSize: 14, marginRight: 4 },
+  location: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
+  dropdownIcon: { fontSize: 10, color: '#888', marginLeft: 6 },
+  cartBtn: { width: 48, height: 48, backgroundColor: '#fff', borderRadius: 24, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  cartIcon: { fontSize: 22 },
+  cartBadge: { position: 'absolute', top: 8, right: 8, backgroundColor: '#EF4444', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  cartBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+
+  searchContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 16 },
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, height: 50, marginRight: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8 },
   searchIcon: { fontSize: 18, marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 16, color: '#333' },
-  heroSlot: { height: 120, marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
-  heroPlaceholder: {
-    flex: 1,
-    backgroundColor: '#fee2e2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#f87171',
-    borderStyle: 'dashed',
-  },
-  heroEmoji: { fontSize: 40, marginBottom: 8 },
-  heroText: { color: '#b91c1c', fontSize: 14 },
-  categoriesScroll: { paddingLeft: 16, marginBottom: 24 },
-  categoryPill: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
+  searchInput: { flex: 1, fontSize: 15, color: '#1a1a1a' },
+  filterBtn: { width: 50, height: 50, backgroundColor: '#571FE4', borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  filterIcon: { fontSize: 20 },
+
+  categoriesScroll: { paddingLeft: 20, paddingRight: 8, marginBottom: 20 },
+  categoryPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 25, marginRight: 10, borderWidth: 1, borderColor: '#E5E5E5' },
   categoryPillActive: { backgroundColor: '#571FE4', borderColor: '#571FE4' },
   categoryEmoji: { fontSize: 16, marginRight: 6 },
-  categoryLabel: { fontSize: 14, color: '#333', fontWeight: '500' },
+  categoryLabel: { fontSize: 14, fontWeight: '500', color: '#444' },
   categoryLabelActive: { color: '#fff' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginHorizontal: 16, marginBottom: 12, color: '#333' },
-  featuredScroll: { paddingLeft: 16, marginBottom: 24 },
-  featuredCard: {
-    backgroundColor: '#fff',
-    width: 200,
-    borderRadius: 16,
-    marginRight: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  featuredImage: {
-    height: 100,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featuredEmoji: { fontSize: 48 },
-  featuredInfo: { padding: 12 },
-  featuredName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  featuredCuisine: { fontSize: 12, color: '#888', marginTop: 2 },
-  featuredMeta: { flexDirection: 'row', marginTop: 8, gap: 12 },
-  featuredRating: { fontSize: 12, color: '#333' },
-  featuredTime: { fontSize: 12, color: '#888' },
-  promoSlot: { height: 70, marginHorizontal: 16, marginBottom: 24, borderRadius: 12, overflow: 'hidden' },
-  promoPlaceholder: {
-    flex: 1,
-    backgroundColor: '#dcfce7',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#22c55e',
-    borderStyle: 'dashed',
-  },
-  promoText: { color: '#166534', fontSize: 14 },
-  restaurantList: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 16, marginBottom: 24 },
-  restaurantRow: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    alignItems: 'center',
-  },
-  restaurantEmoji: {
-    width: 56,
-    height: 56,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
+
+  heroSlot: { marginHorizontal: 20, height: 90, borderRadius: 16, overflow: 'hidden', marginBottom: 24 },
+  heroPlaceholder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#571FE4', paddingHorizontal: 20 },
+  heroContent: {},
+  heroTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  heroSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+  heroEmoji: { fontSize: 48 },
+
+  section: { marginBottom: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
+  sectionTitlePadded: { fontSize: 18, fontWeight: '600', color: '#1a1a1a', paddingHorizontal: 20, marginBottom: 14 },
+  viewAll: { fontSize: 14, color: '#571FE4', fontWeight: '500' },
+
+  featuredScroll: { paddingLeft: 20, paddingRight: 8 },
+  featuredCard: { width: 200, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8 },
+  featuredImage: { height: 120, backgroundColor: '#FFF7ED', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  featuredEmoji: { fontSize: 56 },
+  featuredRating: { position: 'absolute', top: 10, right: 10, backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  ratingText: { fontSize: 12, fontWeight: '600', color: '#1a1a1a' },
+  featuredInfo: { padding: 14 },
+  featuredName: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
+  featuredCuisine: { fontSize: 13, color: '#888', marginTop: 2 },
+  featuredMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  metaText: { fontSize: 12, color: '#666' },
+  metaDot: { fontSize: 12, color: '#CCC', marginHorizontal: 6 },
+  metaPrice: { fontSize: 12, fontWeight: '600', color: '#22C55E' },
+
+  promoSlot: { marginHorizontal: 20, height: 80, borderRadius: 16, overflow: 'hidden', marginBottom: 24 },
+  promoPlaceholder: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', paddingHorizontal: 16 },
+  promoIcon: { fontSize: 32, marginRight: 14 },
+  promoContent: { flex: 1 },
+  promoTitle: { fontSize: 15, fontWeight: '600', color: '#B91C1C' },
+  promoSubtitle: { fontSize: 13, color: '#EF4444', marginTop: 2 },
+
+  restaurantList: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 16, overflow: 'hidden' },
+  restaurantRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+  restaurantImage: { width: 60, height: 60, backgroundColor: '#F5F5F5', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  restaurantEmoji: { fontSize: 32 },
   restaurantInfo: { flex: 1 },
-  restaurantName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  restaurantCuisine: { fontSize: 12, color: '#888', marginTop: 2 },
-  restaurantMeta: { flexDirection: 'row', marginTop: 6, gap: 12 },
-  restaurantRating: { fontSize: 12, color: '#333' },
-  restaurantTime: { fontSize: 12, color: '#888' },
-  restaurantPrice: { fontSize: 12, color: '#22c55e', fontWeight: '500' },
-  orderCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  orderRestaurant: { fontSize: 16, fontWeight: '600', color: '#333' },
+  restaurantName: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
+  restaurantCuisine: { fontSize: 13, color: '#888', marginTop: 2 },
+  restaurantMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  restaurantArrow: { fontSize: 24, color: '#CCC' },
+
+  cuisinesSlot: { marginHorizontal: 20, height: 72, borderRadius: 16, overflow: 'hidden', marginBottom: 24 },
+  cuisinesPlaceholder: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF2FF', paddingHorizontal: 16 },
+  cuisinesIcon: { fontSize: 28, marginRight: 12 },
+  cuisinesContent: { flex: 1 },
+  cuisinesTitle: { fontSize: 15, fontWeight: '600', color: '#4338CA' },
+  cuisinesSubtitle: { fontSize: 12, color: '#6366F1', marginTop: 2 },
+  cuisinesArrow: { width: 32, height: 32, backgroundColor: '#6366F1', borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  arrowText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  orderCard: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 20 },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  orderInfo: {},
+  orderRestaurant: { fontSize: 17, fontWeight: '600', color: '#1a1a1a' },
   orderItems: { fontSize: 13, color: '#888', marginTop: 4 },
-  orderStatus: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  orderStatusText: { color: '#92400e', fontSize: 12, fontWeight: '600' },
-  orderProgress: { marginTop: 16 },
-  progressBar: { height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#571FE4', borderRadius: 3 },
-  orderEta: { fontSize: 12, color: '#888', marginTop: 8, textAlign: 'center' },
-  trackBtn: { backgroundColor: '#571FE4', padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  trackBtnText: { color: '#fff', fontWeight: '600' },
-  bottomSlot: { height: 80, margin: 16 },
+  orderStatus: { backgroundColor: '#FEF3C7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  orderStatusText: { fontSize: 12, fontWeight: '600', color: '#92400E' },
+  progressContainer: { marginBottom: 20 },
+  progressBar: { height: 4, backgroundColor: '#E5E5E5', borderRadius: 2, marginBottom: 16 },
+  progressFill: { height: '100%', backgroundColor: '#571FE4', borderRadius: 2 },
+  progressSteps: { flexDirection: 'row', justifyContent: 'space-between' },
+  progressStep: { alignItems: 'center', width: 70 },
+  stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#E5E5E5', marginBottom: 6 },
+  stepDotComplete: { backgroundColor: '#22C55E' },
+  stepDotActive: { backgroundColor: '#571FE4' },
+  stepLabel: { fontSize: 10, color: '#888', textAlign: 'center' },
+  orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  orderEta: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
+  trackBtn: { backgroundColor: '#571FE4', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
+  trackBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+
+  bottomSlot: { marginHorizontal: 20, height: 70, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  bottomPlaceholder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F5F5' },
+  bottomIcon: { fontSize: 20, marginRight: 10 },
+  bottomText: { fontSize: 14, color: '#888' },
 });

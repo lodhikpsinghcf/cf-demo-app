@@ -30,7 +30,6 @@ export function CFSlot({ slotId, style, children }: CFSlotProps) {
         blockType: content.type,
       });
 
-      // Handle CTA action
       if (content.cta?.url) {
         Linking.openURL(content.cta.url);
       }
@@ -52,11 +51,13 @@ export function CFSlot({ slotId, style, children }: CFSlotProps) {
       case 'banner':
       case 'hero':
         return (
-          <TouchableOpacity style={styles.banner} onPress={handleTap} activeOpacity={0.9}>
-            {content.imageUrl && (
+          <TouchableOpacity style={styles.banner} onPress={handleTap} activeOpacity={0.95}>
+            {content.imageUrl ? (
               <Image source={{ uri: content.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+            ) : (
+              <View style={[styles.bannerImage, { backgroundColor: content.backgroundColor || '#571FE4' }]} />
             )}
-            <View style={styles.bannerOverlay}>
+            <View style={[styles.bannerOverlay, content.imageUrl && styles.bannerOverlayDark]}>
               {content.title && <Text style={styles.bannerTitle}>{content.title}</Text>}
               {content.subtitle && <Text style={styles.bannerSubtitle}>{content.subtitle}</Text>}
               {content.cta?.label && (
@@ -70,30 +71,52 @@ export function CFSlot({ slotId, style, children }: CFSlotProps) {
 
       case 'card':
         return (
-          <TouchableOpacity style={styles.card} onPress={handleTap} activeOpacity={0.9}>
+          <TouchableOpacity style={styles.card} onPress={handleTap} activeOpacity={0.95}>
             {content.imageUrl && (
               <Image source={{ uri: content.imageUrl }} style={styles.cardImage} resizeMode="cover" />
             )}
             <View style={styles.cardContent}>
               {content.title && <Text style={styles.cardTitle}>{content.title}</Text>}
-              {content.description && <Text style={styles.cardDescription}>{content.description}</Text>}
+              {content.description && <Text style={styles.cardDescription} numberOfLines={2}>{content.description}</Text>}
+              {content.cta?.label && (
+                <Text style={styles.cardCta}>{content.cta.label} →</Text>
+              )}
             </View>
           </TouchableOpacity>
         );
 
       case 'promo':
+      case 'inline':
         return (
-          <TouchableOpacity style={styles.promo} onPress={handleTap} activeOpacity={0.9}>
+          <TouchableOpacity style={[styles.promo, { backgroundColor: content.backgroundColor || '#FEF3C7' }]} onPress={handleTap} activeOpacity={0.95}>
             <View style={styles.promoContent}>
               {content.icon && <Text style={styles.promoIcon}>{content.icon}</Text>}
               <View style={styles.promoText}>
-                {content.title && <Text style={styles.promoTitle}>{content.title}</Text>}
-                {content.subtitle && <Text style={styles.promoSubtitle}>{content.subtitle}</Text>}
+                {content.title && <Text style={[styles.promoTitle, { color: content.titleColor || '#92400E' }]}>{content.title}</Text>}
+                {content.subtitle && <Text style={[styles.promoSubtitle, { color: content.subtitleColor || '#B45309' }]}>{content.subtitle}</Text>}
               </View>
             </View>
             {content.cta?.label && (
-              <View style={styles.promoCta}>
+              <View style={[styles.promoCta, { backgroundColor: content.ctaColor || '#F59E0B' }]}>
                 <Text style={styles.promoCtaText}>{content.cta.label}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+
+      case 'reward':
+        return (
+          <TouchableOpacity style={styles.reward} onPress={handleTap} activeOpacity={0.95}>
+            <View style={styles.rewardLeft}>
+              {content.icon && <Text style={styles.rewardIcon}>{content.icon}</Text>}
+              <View>
+                {content.title && <Text style={styles.rewardLabel}>{content.title}</Text>}
+                {content.value && <Text style={styles.rewardValue}>{content.value}</Text>}
+              </View>
+            </View>
+            {content.cta?.label && (
+              <View style={styles.rewardCta}>
+                <Text style={styles.rewardCtaText}>{content.cta.label}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -101,9 +124,15 @@ export function CFSlot({ slotId, style, children }: CFSlotProps) {
 
       default:
         return (
-          <TouchableOpacity style={styles.defaultBlock} onPress={handleTap}>
-            {content.title && <Text style={styles.defaultTitle}>{content.title}</Text>}
-            {content.description && <Text style={styles.defaultDesc}>{content.description}</Text>}
+          <TouchableOpacity style={styles.defaultBlock} onPress={handleTap} activeOpacity={0.95}>
+            <View style={styles.defaultContent}>
+              {content.icon && <Text style={styles.defaultIcon}>{content.icon}</Text>}
+              <View style={styles.defaultText}>
+                {content.title && <Text style={styles.defaultTitle}>{content.title}</Text>}
+                {content.description && <Text style={styles.defaultDesc}>{content.description}</Text>}
+              </View>
+            </View>
+            {content.cta?.label && <Text style={styles.defaultCta}>{content.cta.label} →</Text>}
           </TouchableOpacity>
         );
     }
@@ -119,11 +148,12 @@ export function CFSlot({ slotId, style, children }: CFSlotProps) {
 const styles = StyleSheet.create({
   slot: {
     overflow: 'hidden',
+    borderRadius: 16,
   },
-  // Banner styles
+
+  // Banner / Hero
   banner: {
     flex: 1,
-    backgroundColor: '#571FE4',
     position: 'relative',
   },
   bannerImage: {
@@ -133,11 +163,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  bannerOverlayDark: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   bannerTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
   },
   bannerSubtitle: {
@@ -147,50 +179,62 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     alignSelf: 'flex-start',
-    marginTop: 12,
+    marginTop: 14,
   },
   ctaText: {
     color: '#571FE4',
     fontWeight: '600',
     fontSize: 14,
   },
-  // Card styles
+
+  // Card
   card: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
     overflow: 'hidden',
   },
   cardImage: {
-    height: '60%',
-    width: '100%',
+    width: 100,
+    height: '100%',
   },
   cardContent: {
-    padding: 12,
+    flex: 1,
+    padding: 16,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#1a1a1a',
   },
   cardDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
     marginTop: 4,
+    lineHeight: 18,
   },
-  // Promo styles
+  cardCta: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#571FE4',
+    marginTop: 8,
+  },
+
+  // Promo / Inline
   promo: {
     flex: 1,
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   promoContent: {
     flexDirection: 'row',
@@ -199,7 +243,7 @@ const styles = StyleSheet.create({
   },
   promoIcon: {
     fontSize: 28,
-    marginRight: 12,
+    marginRight: 14,
   },
   promoText: {
     flex: 1,
@@ -207,40 +251,98 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#92400e',
   },
   promoSubtitle: {
     fontSize: 12,
-    color: '#b45309',
     marginTop: 2,
   },
   promoCta: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   promoCtaText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 13,
   },
-  // Default styles
+
+  // Reward
+  reward: {
+    flex: 1,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  rewardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rewardIcon: {
+    fontSize: 28,
+    marginRight: 14,
+  },
+  rewardLabel: {
+    fontSize: 13,
+    color: '#166534',
+  },
+  rewardValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#15803D',
+    marginTop: 2,
+  },
+  rewardCta: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  rewardCtaText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // Default
   defaultBlock: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    justifyContent: 'center',
-    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  defaultContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  defaultIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  defaultText: {
+    flex: 1,
   },
   defaultTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#333',
   },
   defaultDesc: {
     fontSize: 13,
     color: '#666',
-    marginTop: 4,
+    marginTop: 2,
+  },
+  defaultCta: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#571FE4',
   },
 });

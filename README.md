@@ -209,21 +209,27 @@ async function registerForPush() {
 
 ## Content Slots
 
-The app includes these slot IDs for dynamic content:
+The app includes **16 slot IDs** for comprehensive dynamic content testing:
 
-| Screen | Slot ID | Type |
-|--------|---------|------|
-| Home | `home-hero` | Banner |
-| Home | `home-promo` | Promo |
-| Home | `home-bottom` | Card |
-| Wallet | `wallet-promo` | Promo |
-| Wallet | `wallet-bottom` | Card |
-| Travel | `travel-hero` | Banner |
-| Travel | `travel-promo` | Promo |
-| Travel | `travel-bottom` | Card |
-| Food | `food-hero` | Banner |
-| Food | `food-promo` | Promo |
-| Food | `food-bottom` | Card |
+| Screen | Slot ID | Placement | Best For |
+|--------|---------|-----------|----------|
+| Home | `home-hero` | Top hero area | Hero banners, campaigns |
+| Home | `home-inline-1` | After quick actions | Inline promos, tips |
+| Home | `home-promo` | Mid-page | Offers, promotions |
+| Home | `home-featured` | After transactions | Featured cards, upsells |
+| Home | `home-bottom` | Page bottom | Announcements |
+| Wallet | `wallet-promo` | After balance | Card upgrades, offers |
+| Wallet | `wallet-card-offers` | After cards | Card-specific deals |
+| Wallet | `wallet-rewards` | Before transactions | Rewards, points |
+| Wallet | `wallet-bottom` | Page bottom | Insights, tips |
+| Travel | `travel-hero` | After search form | Flight deals |
+| Travel | `travel-promo` | After destinations | Weekend specials |
+| Travel | `travel-hotels` | After trips | Hotel recommendations |
+| Travel | `travel-bottom` | Page bottom | Travel guides |
+| Food | `food-hero` | After categories | Delivery promos |
+| Food | `food-promo` | After featured | Discount codes |
+| Food | `food-cuisines` | After restaurants | Cuisine discovery |
+| Food | `food-bottom` | Page bottom | Loyalty perks |
 
 ---
 
