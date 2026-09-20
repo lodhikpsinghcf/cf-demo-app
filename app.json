@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "CF Demo",
+    "slug": "cf-demo-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#571FE4"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.contentflow.demo"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#571FE4"
+      },
+      "package": "com.contentflow.demo"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "cfdemo",
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "contentflowApiKey": "pk_live_YOUR_KEY_HERE",
+      "contentflowBaseUrl": "https://api.contentflow.click"
+    }
+  }
+}
