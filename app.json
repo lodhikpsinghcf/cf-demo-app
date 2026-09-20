@@ -32,7 +32,7 @@
       "expo-router"
     ],
     "extra": {
-      "contentflowApiKey": "pk_live_YOUR_KEY_HERE",
+      "contentflowApiKey": "ws_7d0194ac4b94287a59342f21_test",
       "contentflowBaseUrl": "https://api.contentflow.click"
     }
   }
