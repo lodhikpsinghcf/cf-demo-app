@@ -32,8 +32,9 @@
       "expo-router"
     ],
     "extra": {
-      "contentflowApiKey": "ws_7d0194ac4b94287a59342f21_test",
-      "contentflowBaseUrl": "https://api.contentflow.click"
+      "eas": {
+        "projectId": "cf-demo-app"
+      }
     }
   }
 }

@@ -1,10 +1,26 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 
-// ContentFlow SDK configuration
-const CF_API_KEY = Constants.expoConfig?.extra?.contentflowApiKey || 'pk_live_demo';
-const CF_BASE_URL = Constants.expoConfig?.extra?.contentflowBaseUrl || 'https://api.contentflow.click';
+// ContentFlow SDK configuration from environment variables
+const CF_CONFIG = {
+  baseUrl: process.env.EXPO_PUBLIC_CF_BASE_URL || 'https://api.contentflow.click',
+  tenantId: process.env.EXPO_PUBLIC_CF_TENANT_ID || '',
+  sdkKey: process.env.EXPO_PUBLIC_CF_SDK_KEY || '',
+  writeKey: process.env.EXPO_PUBLIC_CF_WRITE_KEY || '',
+  readKey: process.env.EXPO_PUBLIC_CF_READ_KEY || '',
+  appName: process.env.EXPO_PUBLIC_APP_NAME || 'CF Demo',
+  appVersion: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
+};
+
+interface ContentFlowConfig {
+  baseUrl: string;
+  tenantId: string;
+  sdkKey: string;
+  writeKey: string;
+  readKey: string;
+  appName: string;
+  appVersion: string;
+}
 
 interface ContentFlowContextType {
   isReady: boolean;
@@ -12,6 +28,7 @@ interface ContentFlowContextType {
   userId: string | null;
   consent: boolean;
   content: Record<string, any>;
+  config: ContentFlowConfig;
   setUserId: (id: string) => Promise<void>;
   setConsent: (granted: boolean) => Promise<void>;
   trackEvent: (event: string, data?: Record<string, any>) => void;
@@ -47,17 +64,17 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
         setDeviceId(id);
 
         // Call identify endpoint
-        const response = await fetch(`${CF_BASE_URL}/sdk/v1/identify`, {
+        const response = await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/identify`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CF-Key': CF_API_KEY,
+            'X-CF-Key': CF_CONFIG.sdkKey,
           },
           body: JSON.stringify({
             deviceId: id,
             platform: Device.osName?.toLowerCase() || 'unknown',
             osVersion: Device.osVersion || 'unknown',
-            appVersion: '1.0.0',
+            appVersion: CF_CONFIG.appVersion,
             deviceModel: Device.modelName || 'unknown',
           }),
         });
@@ -86,11 +103,11 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
     if (!deviceId) return;
 
     try {
-      await fetch(`${CF_BASE_URL}/sdk/v1/identify`, {
+      await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/identify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CF-Key': CF_API_KEY,
+          'X-CF-Key': CF_CONFIG.sdkKey,
         },
         body: JSON.stringify({
           deviceId,
@@ -109,11 +126,11 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
     if (!deviceId) return;
 
     try {
-      await fetch(`${CF_BASE_URL}/sdk/v1/consent`, {
+      await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/consent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CF-Key': CF_API_KEY,
+          'X-CF-Key': CF_CONFIG.sdkKey,
         },
         body: JSON.stringify({
           deviceId,
@@ -136,11 +153,11 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    fetch(`${CF_BASE_URL}/sdk/v1/events`, {
+    fetch(`${CF_CONFIG.baseUrl}/sdk/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CF-Key': CF_API_KEY,
+        'X-CF-Key': CF_CONFIG.sdkKey,
       },
       body: JSON.stringify({
         deviceId,
@@ -162,10 +179,10 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
     if (!deviceId) return;
 
     try {
-      const response = await fetch(`${CF_BASE_URL}/sdk/v1/sync`, {
+      const response = await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/sync`, {
         method: 'GET',
         headers: {
-          'X-CF-Key': CF_API_KEY,
+          'X-CF-Key': CF_CONFIG.sdkKey,
           'X-CF-Device-Id': deviceId,
         },
       });
@@ -210,6 +227,7 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
         userId,
         consent,
         content,
+        config: CF_CONFIG,
         setUserId,
         setConsent,
         trackEvent,

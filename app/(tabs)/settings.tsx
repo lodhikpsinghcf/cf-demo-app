@@ -12,6 +12,7 @@ export default function SettingsScreen() {
     isReady,
     sync,
     trackEvent,
+    config,
   } = useContentFlow();
 
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -135,9 +136,20 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Info</Text>
         <View style={styles.card}>
-          <SettingRow label="App Version" value="1.0.0" />
-          <SettingRow label="SDK Version" value="1.2.0" />
-          <SettingRow label="API Endpoint" value="api.contentflow.click" />
+          <SettingRow label="App Name" value={config.appName} />
+          <SettingRow label="App Version" value={config.appVersion} />
+          <SettingRow label="API Endpoint" value={config.baseUrl.replace('https://', '')} />
+        </View>
+      </View>
+
+      {/* SDK Config */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>SDK Configuration</Text>
+        <View style={styles.card}>
+          <SettingRow label="Tenant ID" value={config.tenantId || 'Not set'} />
+          <SettingRow label="SDK Key" value={config.sdkKey ? `${config.sdkKey.slice(0, 20)}...` : 'Not set'} />
+          <SettingRow label="Write Key" value={config.writeKey ? `${config.writeKey.slice(0, 20)}...` : 'Not set'} />
+          <SettingRow label="Read Key" value={config.readKey ? `${config.readKey.slice(0, 20)}...` : 'Not set'} />
         </View>
       </View>
 
@@ -149,6 +161,10 @@ export default function SettingsScreen() {
           <Text style={styles.debugValue} selectable>{deviceId || 'Not set'}</Text>
           <Text style={styles.debugText}>User ID:</Text>
           <Text style={styles.debugValue} selectable>{userId || 'Anonymous'}</Text>
+          <Text style={styles.debugText}>Tenant ID:</Text>
+          <Text style={styles.debugValue} selectable>{config.tenantId || 'Not set'}</Text>
+          <Text style={styles.debugText}>SDK Key:</Text>
+          <Text style={styles.debugValue} selectable>{config.sdkKey || 'Not set'}</Text>
         </View>
       </View>
     </ScrollView>
