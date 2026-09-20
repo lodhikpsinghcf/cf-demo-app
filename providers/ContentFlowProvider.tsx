@@ -30,6 +30,7 @@ const STORAGE_KEYS = {
   DEVICE_ID: '@cf_device_id',
   USER_ID: '@cf_user_id',
   CONSENT: '@cf_consent',
+  DEVICE_CONSENT: '@cf_device_consent', // For event tracking consent
 };
 
 // Types
@@ -148,9 +149,14 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
         const storedConsent = await AsyncStorage.getItem(STORAGE_KEYS.CONSENT);
         if (storedConsent) setConsentState(JSON.parse(storedConsent));
 
+        // Check if device-level consent was previously granted
+        const storedDeviceConsent = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_CONSENT);
+        const hasDeviceConsent = storedDeviceConsent === 'true';
+
         const response = await apiCall('POST', '/sdk/v1/identify', {
           deviceId: storedDeviceId,
           userId: storedUserId || undefined,
+          consent: hasDeviceConsent, // Include device consent for event tracking
           platform: Device.osName?.toLowerCase() || 'unknown',
           osVersion: Device.osVersion || 'unknown',
           appVersion: CF_CONFIG.appVersion,
@@ -191,8 +197,31 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
     const newConsent = { ...consent, ...options };
     setConsentState(newConsent);
     await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, JSON.stringify(newConsent));
-    if (deviceId) await apiCall('POST', '/sdk/v1/consent', { deviceId, consent: options });
-  }, [deviceId, consent]);
+
+    if (deviceId) {
+      // If marketing consent is granted, enable device-level consent for event tracking
+      if (options.marketing === true) {
+        await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_CONSENT, 'true');
+        await apiCall('POST', '/sdk/v1/identify', {
+          deviceId,
+          userId: userId || undefined,
+          consent: true,
+          platform: Device.osName?.toLowerCase() || 'unknown',
+        });
+      } else if (options.marketing === false) {
+        await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_CONSENT, 'false');
+        await apiCall('POST', '/sdk/v1/identify', {
+          deviceId,
+          userId: userId || undefined,
+          consent: false,
+          platform: Device.osName?.toLowerCase() || 'unknown',
+        });
+      }
+
+      // Also send channel-specific consent
+      await apiCall('POST', '/sdk/v1/consent', { deviceId, consent: options });
+    }
+  }, [deviceId, userId, consent]);
 
   const trackEvent = useCallback((eventType: string, data?: Record<string, any>) => {
     if (!deviceId) return;
