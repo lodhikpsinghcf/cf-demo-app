@@ -76,7 +76,7 @@ export default function WalletScreen() {
       </LinearGradient>
 
       {/* Wallet Promo Slot */}
-      <CFSlot slotId="wallet-promo" style={styles.promoSlot}>
+      <CFSlot blockKey="wallet-promo" style={styles.promoSlot}>
         <LinearGradient colors={['#FEF3C7', '#FDE68A']} style={styles.promoPlaceholder}>
           <Text style={styles.promoIcon}>💳</Text>
           <View style={styles.promoContent}>
@@ -88,7 +88,7 @@ export default function WalletScreen() {
       </CFSlot>
 
       {/* Upgrade Banner Slot */}
-      <CFSlot slotId="wallet-upgrade" style={styles.upgradeSlot}>
+      <CFSlot blockKey="wallet-upgrade" style={styles.upgradeSlot}>
         <LinearGradient colors={['#1E293B', '#334155']} style={styles.upgradePlaceholder}>
           <View style={styles.upgradeBadge}>
             <Text style={styles.upgradeBadgeText}>PREMIUM</Text>
@@ -117,7 +117,7 @@ export default function WalletScreen() {
       </View>
 
       {/* Card Offers Slot */}
-      <CFSlot slotId="wallet-card-offers" style={styles.cardOffersSlot}>
+      <CFSlot blockKey="wallet-card-offers" style={styles.cardOffersSlot}>
         <LinearGradient colors={['#EEF2FF', '#E0E7FF']} style={styles.cardOffersPlaceholder}>
           <Text style={styles.cardOffersIcon}>🎯</Text>
           <Text style={styles.cardOffersTitle}>Exclusive Card Offers</Text>
@@ -144,7 +144,7 @@ export default function WalletScreen() {
       </View>
 
       {/* Spending Insights Slot */}
-      <CFSlot slotId="wallet-insights" style={styles.insightsSlot}>
+      <CFSlot blockKey="wallet-insights" style={styles.insightsSlot}>
         <View style={styles.insightsPlaceholder}>
           <View style={styles.insightsHeader}>
             <Text style={styles.insightsIcon}>📊</Text>
@@ -171,7 +171,7 @@ export default function WalletScreen() {
       </CFSlot>
 
       {/* Wallet Rewards Slot */}
-      <CFSlot slotId="wallet-rewards" style={styles.rewardsSlot}>
+      <CFSlot blockKey="wallet-rewards" style={styles.rewardsSlot}>
         <LinearGradient colors={['#F0FDF4', '#DCFCE7']} style={styles.rewardsPlaceholder}>
           <View style={styles.rewardsLeft}>
             <Text style={styles.rewardsIcon}>🏆</Text>
@@ -187,7 +187,7 @@ export default function WalletScreen() {
       </CFSlot>
 
       {/* Cashback Slot */}
-      <CFSlot slotId="wallet-cashback" style={styles.cashbackSlot}>
+      <CFSlot blockKey="wallet-cashback" style={styles.cashbackSlot}>
         <LinearGradient colors={['#FEF3C7', '#FDE68A']} style={styles.cashbackPlaceholder}>
           <Text style={styles.cashbackIcon}>💰</Text>
           <View style={styles.cashbackContent}>
@@ -216,7 +216,7 @@ export default function WalletScreen() {
       </View>
 
       {/* Goals Slot */}
-      <CFSlot slotId="wallet-goals" style={styles.goalsSlot}>
+      <CFSlot blockKey="wallet-goals" style={styles.goalsSlot}>
         <View style={styles.goalsPlaceholder}>
           <View style={styles.goalsHeader}>
             <Text style={styles.goalsIcon}>🎯</Text>
@@ -233,7 +233,7 @@ export default function WalletScreen() {
       </CFSlot>
 
       {/* Bottom Banner Slot */}
-      <CFSlot slotId="wallet-bottom" style={styles.bottomSlot}>
+      <CFSlot blockKey="wallet-bottom" style={styles.bottomSlot}>
         <LinearGradient colors={['#F5F5F5', '#E5E5E5']} style={styles.bottomPlaceholder}>
           <Text style={styles.bottomIcon}>🔒</Text>
           <Text style={styles.bottomText}>Your money is secure with bank-grade encryption</Text>

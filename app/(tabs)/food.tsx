@@ -107,7 +107,7 @@ export default function FoodScreen() {
       </ScrollView>
 
       {/* Flash Deal Slot */}
-      <CFSlot slotId="food-flash" style={styles.flashSlot}>
+      <CFSlot blockKey="food-flash" style={styles.flashSlot}>
         <LinearGradient colors={['#EF4444', '#F97316']} style={styles.flashPlaceholder}>
           <View style={styles.flashContent}>
             <View style={styles.flashBadge}>
@@ -123,7 +123,7 @@ export default function FoodScreen() {
       </CFSlot>
 
       {/* Food Promo Slot - contextual, after categories */}
-      <CFSlot slotId="food-hero" style={styles.heroSlot}>
+      <CFSlot blockKey="food-hero" style={styles.heroSlot}>
         <LinearGradient colors={['#571FE4', '#7C3AED']} style={styles.heroPlaceholder}>
           <View style={styles.heroContent}>
             <Text style={styles.heroTitle}>Free Delivery</Text>
@@ -147,7 +147,7 @@ export default function FoodScreen() {
       </View>
 
       {/* Restaurant Promo Slot */}
-      <CFSlot slotId="food-promo" style={styles.promoSlot}>
+      <CFSlot blockKey="food-promo" style={styles.promoSlot}>
         <LinearGradient colors={['#FEF2F2', '#FEE2E2']} style={styles.promoPlaceholder}>
           <Text style={styles.promoIcon}>🎁</Text>
           <View style={styles.promoContent}>
@@ -167,7 +167,7 @@ export default function FoodScreen() {
           <TouchableOpacity><Text style={styles.viewAll}>See all</Text></TouchableOpacity>
         </View>
       </View>
-      <CFSlot slotId="food-recommended" style={styles.recommendedSlot}>
+      <CFSlot blockKey="food-recommended" style={styles.recommendedSlot}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recommendedScroll}>
           <RecommendedCard name="Shawarma Combo" restaurant="Shawarma House" price="SAR 35" colors={['#F0FDF4', '#DCFCE7']} emoji="🥙" />
           <RecommendedCard name="Chicken Meal" restaurant="Al Baik" price="SAR 25" colors={['#FEF3C7', '#FDE68A']} emoji="🍗" />
@@ -187,7 +187,7 @@ export default function FoodScreen() {
       </View>
 
       {/* Cuisines Slot */}
-      <CFSlot slotId="food-cuisines" style={styles.cuisinesSlot}>
+      <CFSlot blockKey="food-cuisines" style={styles.cuisinesSlot}>
         <LinearGradient colors={['#EEF2FF', '#E0E7FF']} style={styles.cuisinesPlaceholder}>
           <Text style={styles.cuisinesIcon}>🌍</Text>
           <View style={styles.cuisinesContent}>
@@ -202,7 +202,7 @@ export default function FoodScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitlePadded}>Browse by Cuisine</Text>
       </View>
-      <CFSlot slotId="food-cuisine-grid" style={styles.cuisineGridSlot}>
+      <CFSlot blockKey="food-cuisine-grid" style={styles.cuisineGridSlot}>
         <View style={styles.cuisineGrid}>
           <CuisineItem emoji="🍕" label="Italian" color="#FEE2E2" />
           <CuisineItem emoji="🍣" label="Japanese" color="#FDF4FF" />
@@ -259,7 +259,7 @@ export default function FoodScreen() {
       </View>
 
       {/* Rewards Slot */}
-      <CFSlot slotId="food-rewards" style={styles.rewardsSlot}>
+      <CFSlot blockKey="food-rewards" style={styles.rewardsSlot}>
         <LinearGradient colors={['#F0FDF4', '#DCFCE7']} style={styles.rewardsPlaceholder}>
           <Text style={styles.rewardsIcon}>🏆</Text>
           <View style={styles.rewardsContent}>
@@ -273,7 +273,7 @@ export default function FoodScreen() {
       </CFSlot>
 
       {/* Bottom Slot */}
-      <CFSlot slotId="food-bottom" style={styles.bottomSlot}>
+      <CFSlot blockKey="food-bottom" style={styles.bottomSlot}>
         <LinearGradient colors={['#F5F5F5', '#E5E5E5']} style={styles.bottomPlaceholder}>
           <Text style={styles.bottomIcon}>⭐</Text>
           <Text style={styles.bottomText}>Loyalty rewards & perks</Text>

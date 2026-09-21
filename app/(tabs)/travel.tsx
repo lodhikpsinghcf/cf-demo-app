@@ -107,7 +107,7 @@ export default function TravelScreen() {
       </View>
 
       {/* Flash Deal Slot */}
-      <CFSlot slotId="travel-flash" style={styles.flashSlot}>
+      <CFSlot blockKey="travel-flash" style={styles.flashSlot}>
         <LinearGradient colors={['#7C3AED', '#EC4899']} style={styles.flashPlaceholder}>
           <View style={styles.flashBadge}>
             <Text style={styles.flashBadgeText}>⚡ FLASH DEAL</Text>
@@ -123,7 +123,7 @@ export default function TravelScreen() {
       </CFSlot>
 
       {/* Travel Deals Slot */}
-      <CFSlot slotId="travel-hero" style={styles.dealsSlot}>
+      <CFSlot blockKey="travel-hero" style={styles.dealsSlot}>
         <LinearGradient colors={['#DBEAFE', '#BFDBFE']} style={styles.dealsPlaceholder}>
           <Text style={styles.dealsIcon}>✈️</Text>
           <View style={styles.dealsContent}>
@@ -151,7 +151,7 @@ export default function TravelScreen() {
       </View>
 
       {/* Destination Spotlight Slot */}
-      <CFSlot slotId="travel-spotlight" style={styles.spotlightSlot}>
+      <CFSlot blockKey="travel-spotlight" style={styles.spotlightSlot}>
         <View style={styles.spotlightPlaceholder}>
           <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={styles.spotlightImage}>
             <Text style={styles.spotlightEmoji}>🏝️</Text>
@@ -168,7 +168,7 @@ export default function TravelScreen() {
       </CFSlot>
 
       {/* Destination Promo Slot */}
-      <CFSlot slotId="travel-promo" style={styles.promoSlot}>
+      <CFSlot blockKey="travel-promo" style={styles.promoSlot}>
         <LinearGradient colors={['#FEF3C7', '#FDE68A']} style={styles.promoPlaceholder}>
           <Text style={styles.promoIcon}>🎫</Text>
           <View style={styles.promoContent}>
@@ -222,7 +222,7 @@ export default function TravelScreen() {
           <TouchableOpacity><Text style={styles.viewAll}>See all</Text></TouchableOpacity>
         </View>
       </View>
-      <CFSlot slotId="travel-lastminute" style={styles.lastMinuteSlot}>
+      <CFSlot blockKey="travel-lastminute" style={styles.lastMinuteSlot}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.lastMinuteScroll}>
           <LastMinuteCard destination="Bahrain" price="SAR 199" departure="Tomorrow" colors={['#EEF2FF', '#E0E7FF']} />
           <LastMinuteCard destination="Jeddah" price="SAR 149" departure="Tonight" colors={['#FEF3C7', '#FDE68A']} />
@@ -231,7 +231,7 @@ export default function TravelScreen() {
       </CFSlot>
 
       {/* Hotels Slot */}
-      <CFSlot slotId="travel-hotels" style={styles.hotelsSlot}>
+      <CFSlot blockKey="travel-hotels" style={styles.hotelsSlot}>
         <LinearGradient colors={['#F0FDF4', '#DCFCE7']} style={styles.hotelsPlaceholder}>
           <Text style={styles.hotelsIcon}>🏨</Text>
           <View style={styles.hotelsContent}>
@@ -256,7 +256,7 @@ export default function TravelScreen() {
       </View>
 
       {/* Miles Slot */}
-      <CFSlot slotId="travel-miles" style={styles.milesSlot}>
+      <CFSlot blockKey="travel-miles" style={styles.milesSlot}>
         <LinearGradient colors={['#1E293B', '#334155']} style={styles.milesPlaceholder}>
           <View style={styles.milesLeft}>
             <Text style={styles.milesIcon}>🛫</Text>
@@ -272,7 +272,7 @@ export default function TravelScreen() {
       </CFSlot>
 
       {/* Bottom Slot */}
-      <CFSlot slotId="travel-bottom" style={styles.bottomSlot}>
+      <CFSlot blockKey="travel-bottom" style={styles.bottomSlot}>
         <LinearGradient colors={['#F5F5F5', '#E5E5E5']} style={styles.bottomPlaceholder}>
           <Text style={styles.bottomIcon}>🌍</Text>
           <Text style={styles.bottomText}>Travel tips & guides</Text>

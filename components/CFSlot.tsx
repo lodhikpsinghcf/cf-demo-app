@@ -17,17 +17,17 @@ import { useContentFlow } from '../providers/ContentFlowProvider';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface CFSlotProps {
-  slotId: string;
+  blockKey: string;
   style?: ViewStyle;
   children?: React.ReactNode;
   variant?: 'default' | 'compact' | 'fullwidth';
   showSkeleton?: boolean;
 }
 
-export function CFSlot({ slotId, style, children, variant = 'default', showSkeleton = true }: CFSlotProps) {
-  const { getSlotContent, getBlock, trackImpression, trackTap, isReady } = useContentFlow();
-  const content = getSlotContent(slotId);
-  const block = getBlock(slotId);
+export function CFSlot({ blockKey, style, children, variant = 'default', showSkeleton = true }: CFSlotProps) {
+  const { getBlockContent, getBlock, trackImpression, trackTap, isReady } = useContentFlow();
+  const content = getBlockContent(blockKey);
+  const block = getBlock(blockKey);
   const [isLoading, setIsLoading] = useState(true);
   const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
   const shimmerAnim = useState(new Animated.Value(0))[0];

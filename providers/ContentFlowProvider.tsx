@@ -51,8 +51,9 @@ export interface UserTraits {
 
 export interface BlockContent {
   key: string;
+  instanceId?: string;
+  screen?: string;
   type: string;
-  slotId?: string;
   title?: string;
   subtitle?: string;
   description?: string;
@@ -226,10 +227,12 @@ export interface ContentFlowContextType {
   trackImpression: (block: CFBlock | BlockContent) => void;
   trackTap: (block: CFBlock | BlockContent) => void;
 
-  // Content
+  // Content (blocks)
   sync: () => Promise<void>;
-  getSlotContent: (slotId: string) => BlockContent | null;
+  getBlockContent: (key: string) => BlockContent | null;
   getBlock: (key: string) => CFBlock | undefined;
+  getScreenBlocks: (screen: string) => CFBlock[];
+  getAllBlocks: () => CFBlock[];
 
   // Push
   registerPush: () => Promise<any>;
@@ -271,8 +274,9 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     const cta = block.get('cta') as { label?: string; url?: string } | null;
     return {
       key: block.key,
+      instanceId: block.instanceId,
+      screen: block.screen,
       type: (block.get('type') as string) || 'default',
-      slotId: block.get('slotId') as string | undefined,
       title: block.title || (block.get('title') as string | undefined),
       subtitle: block.get('subtitle') as string | undefined,
       description: block.body || (block.get('description') as string | undefined),
@@ -325,13 +329,12 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
         // Start live updates
         await client.start();
 
-        // Get initial content
+        // Get initial content (blocks keyed by block.key)
         const blocks = await client.sync();
         if (blocks) {
           const contentMap: Record<string, BlockContent> = {};
           for (const block of blocks) {
-            const slotId = (block.get('slotId') as string) || block.key;
-            contentMap[slotId] = blockToContent(block);
+            contentMap[block.key] = blockToContent(block);
           }
           setContent(contentMap);
           console.log(`[ContentFlow] Synced ${blocks.length} blocks`);
@@ -487,8 +490,7 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     if (blocks) {
       const contentMap: Record<string, BlockContent> = {};
       for (const block of blocks) {
-        const slotId = (block.get('slotId') as string) || block.key;
-        contentMap[slotId] = blockToContent(block);
+        contentMap[block.key] = blockToContent(block);
       }
       setContent(contentMap);
       console.log(`[ContentFlow] Synced ${blocks.length} blocks`);
@@ -508,14 +510,25 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     await unregisterExpoPush(client);
   }, [client]);
 
-  const getSlotContent = useCallback((slotId: string): BlockContent | null => {
-    return content[slotId] || null;
+  const getBlockContent = useCallback((key: string): BlockContent | null => {
+    return content[key] || null;
   }, [content]);
 
   const getBlock = useCallback((key: string): CFBlock | undefined => {
     if (!client) return undefined;
     return client.getBlock(key);
   }, [client]);
+
+  const getScreenBlocks = useCallback((screen: string): CFBlock[] => {
+    if (!client) return [];
+    return client.getBlocks(screen) || [];
+  }, [client]);
+
+  const getAllBlocks = useCallback((): CFBlock[] => {
+    if (!client) return [];
+    // Get all blocks from content map
+    return Object.keys(content).map(key => client.getBlock(key)).filter(Boolean) as CFBlock[];
+  }, [client, content]);
 
   const reset = useCallback(async () => {
     await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
@@ -610,10 +623,12 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     trackImpression,
     trackTap,
 
-    // Content
+    // Content (blocks)
     sync,
-    getSlotContent,
+    getBlockContent,
     getBlock,
+    getScreenBlocks,
+    getAllBlocks,
 
     // Push
     registerPush: registerPushHandler,
