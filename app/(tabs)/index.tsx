@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { isReady, userId, trackEvent, sync } = useContentFlow();
+  const { isReady, userId, engagement, system, sync } = useContentFlow();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -64,10 +64,10 @@ export default function HomeScreen() {
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <QuickAction icon="💸" label="Send" color="#E8F5E9" onPress={() => trackEvent('quick_action', { action: 'send' })} />
-        <QuickAction icon="📥" label="Request" color="#E3F2FD" onPress={() => trackEvent('quick_action', { action: 'request' })} />
-        <QuickAction icon="✈️" label="Travel" color="#FFF3E0" onPress={() => trackEvent('quick_action', { action: 'travel' })} />
-        <QuickAction icon="🍽️" label="Food" color="#FCE4EC" onPress={() => trackEvent('quick_action', { action: 'food' })} />
+        <QuickAction icon="💸" label="Send" color="#E8F5E9" onPress={() => engagement({ action: 'click', element: 'quick_action_send', screen: 'home' })} />
+        <QuickAction icon="📥" label="Request" color="#E3F2FD" onPress={() => engagement({ action: 'click', element: 'quick_action_request', screen: 'home' })} />
+        <QuickAction icon="✈️" label="Travel" color="#FFF3E0" onPress={() => engagement({ action: 'click', element: 'quick_action_travel', screen: 'home' })} />
+        <QuickAction icon="🍽️" label="Food" color="#FCE4EC" onPress={() => engagement({ action: 'click', element: 'quick_action_food', screen: 'home' })} />
       </View>
 
       {/* Inline Promo Slot 1 */}

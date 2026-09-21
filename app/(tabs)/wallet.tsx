@@ -7,7 +7,7 @@ import { useContentFlow } from '../../providers/ContentFlowProvider';
 const { width } = Dimensions.get('window');
 
 export default function WalletScreen() {
-  const { trackEvent, sync } = useContentFlow();
+  const { commerce, account, engagement, sync } = useContentFlow();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -17,7 +17,15 @@ export default function WalletScreen() {
   }, [sync]);
 
   const handleAction = (action: string) => {
-    trackEvent('wallet_action', { action, screen: 'wallet' });
+    if (action === 'add_money') {
+      commerce({ action: 'top_up', currency: 'SAR', status: 'initiated' });
+    } else if (action === 'send') {
+      commerce({ action: 'transfer', currency: 'SAR', transferType: 'internal', status: 'initiated' });
+    } else if (action === 'withdraw') {
+      commerce({ action: 'withdraw', currency: 'SAR', status: 'initiated' });
+    } else {
+      engagement({ action: 'click', element: `wallet_${action}`, screen: 'wallet' });
+    }
   };
 
   return (

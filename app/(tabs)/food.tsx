@@ -7,7 +7,7 @@ import { useContentFlow } from '../../providers/ContentFlowProvider';
 const { width } = Dimensions.get('window');
 
 export default function FoodScreen() {
-  const { trackEvent, sync } = useContentFlow();
+  const { engagement, commerce, sync } = useContentFlow();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -19,7 +19,24 @@ export default function FoodScreen() {
   }, [sync]);
 
   const handleRestaurantTap = (name: string) => {
-    trackEvent('restaurant_tap', { restaurant: name, screen: 'food' });
+    engagement({
+      action: 'view',
+      contentType: 'restaurant',
+      contentId: name.toLowerCase().replace(/\s+/g, '_'),
+      screen: 'food',
+      custom: { restaurant: name },
+    });
+  };
+
+  const handleSearch = (query: string) => {
+    if (query.length > 2) {
+      engagement({
+        action: 'search',
+        query,
+        screen: 'food',
+        custom: { category: selectedCategory },
+      });
+    }
   };
 
   const categories = [

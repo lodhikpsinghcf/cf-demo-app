@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useContentFlow } from '../../providers/ContentFlowProvider';
 
 export default function SignInScreen() {
-  const { trackSignIn, trackEvent } = useContentFlow();
+  const { trackSignIn, identity, engagement } = useContentFlow();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +35,7 @@ export default function SignInScreen() {
 
     // Track sign in event
     trackSignIn(email.toLowerCase().trim());
-    trackEvent('sign_in_completed', { method: 'email' });
+    identity({ action: 'sign_in', method: 'email' });
 
     setIsLoading(false);
 
@@ -44,7 +44,12 @@ export default function SignInScreen() {
   };
 
   const handleSocialSignIn = (provider: string) => {
-    trackEvent('sign_in_attempt', { method: provider });
+    engagement({
+      action: 'click',
+      element: `signin_${provider.toLowerCase()}`,
+      screen: 'sign_in',
+      custom: { provider },
+    });
     Alert.alert('Coming Soon', `${provider} sign in will be available soon`);
   };
 

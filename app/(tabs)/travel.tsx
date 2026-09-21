@@ -7,7 +7,7 @@ import { useContentFlow } from '../../providers/ContentFlowProvider';
 const { width } = Dimensions.get('window');
 
 export default function TravelScreen() {
-  const { trackEvent, sync } = useContentFlow();
+  const { engagement, commerce, sync } = useContentFlow();
   const [from, setFrom] = useState('Riyadh (RUH)');
   const [to, setTo] = useState('Dubai (DXB)');
   const [tripType, setTripType] = useState<'roundtrip' | 'oneway'>('roundtrip');
@@ -20,7 +20,12 @@ export default function TravelScreen() {
   }, [sync]);
 
   const handleSearch = () => {
-    trackEvent('flight_search', { from, to, tripType, screen: 'travel' });
+    engagement({
+      action: 'search',
+      query: `${from}-${to}`,
+      screen: 'travel',
+      custom: { from, to, tripType },
+    });
   };
 
   return (

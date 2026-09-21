@@ -18,7 +18,7 @@ import { ConsentModal } from '../../components/ConsentModal';
 import { ConsentOptions } from '../../providers/ContentFlowProvider';
 
 export default function SignUpScreen() {
-  const { trackSignUp, trackEvent, setConsent } = useContentFlow();
+  const { trackSignUp, identity, engagement, setConsent } = useContentFlow();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -78,11 +78,14 @@ export default function SignUpScreen() {
       signUpMethod: 'email',
     });
 
-    trackEvent('sign_up_completed', {
+    identity({
+      action: 'sign_up',
       method: 'email',
-      hasPhone: !!phone.trim(),
-      consentMarketing: consent.marketing,
-      consentLocation: consent.locationTracking,
+      custom: {
+        hasPhone: !!phone.trim(),
+        consentMarketing: consent.marketing,
+        consentLocation: consent.locationTracking,
+      },
     });
 
     setShowConsentModal(false);
@@ -92,7 +95,12 @@ export default function SignUpScreen() {
   };
 
   const handleSocialSignUp = (provider: string) => {
-    trackEvent('sign_up_attempt', { method: provider });
+    engagement({
+      action: 'click',
+      element: `signup_${provider.toLowerCase()}`,
+      screen: 'sign_up',
+      custom: { provider },
+    });
     Alert.alert('Coming Soon', `${provider} sign up will be available soon`);
   };
 

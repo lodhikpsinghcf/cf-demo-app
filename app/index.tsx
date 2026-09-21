@@ -19,7 +19,7 @@ const { width, height } = Dimensions.get('window');
 const ONBOARDING_KEY = '@cf_onboarding_complete';
 
 export default function WelcomeScreen() {
-  const { isReady, userId, setConsent, consent, trackEvent } = useContentFlow();
+  const { isReady, userId, setConsent, consent, system, identity } = useContentFlow();
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -53,12 +53,16 @@ export default function WelcomeScreen() {
     await setConsent(consentOptions);
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
 
-    trackEvent('onboarding_consent_completed', {
-      marketing: consentOptions.marketing,
-      push: consentOptions.push,
-      location: consentOptions.locationTracking,
-      email: consentOptions.email,
-      sms: consentOptions.sms,
+    system({
+      action: 'app_open',
+      custom: {
+        onboarding: 'consent_completed',
+        marketing: consentOptions.marketing,
+        push: consentOptions.push,
+        location: consentOptions.locationTracking,
+        email: consentOptions.email,
+        sms: consentOptions.sms,
+      },
     });
 
     setShowConsentModal(false);
@@ -74,7 +78,10 @@ export default function WelcomeScreen() {
 
   const handleSkip = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    trackEvent('onboarding_skipped');
+    system({
+      action: 'app_open',
+      custom: { onboarding: 'skipped' },
+    });
     router.replace('/(tabs)');
   };
 

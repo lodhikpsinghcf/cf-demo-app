@@ -74,6 +74,120 @@ export interface LiveStatus {
   reason?: string;
 }
 
+// Typed event interfaces (matching SDK)
+export interface CommerceEvent {
+  action: 'purchase' | 'transfer' | 'payment' | 'booking' | 'order' | 'refund' | 'subscribe' | 'cancel' | 'top_up' | 'withdraw' | string;
+  amount?: number;
+  currency?: string;
+  reference?: string;
+  status?: 'initiated' | 'pending' | 'completed' | 'failed' | 'cancelled' | string;
+  bookingType?: 'flight' | 'hotel' | 'appointment' | 'table' | 'service' | string;
+  datetime?: string;
+  provider?: string;
+  itemCount?: number;
+  deliveryTime?: number;
+  plan?: string;
+  interval?: 'monthly' | 'yearly' | 'weekly' | string;
+  transferType?: 'internal' | 'external' | 'international' | string;
+  recipientType?: 'person' | 'business' | string;
+  custom?: Record<string, unknown>;
+}
+
+export interface EngagementEvent {
+  action: 'click' | 'view' | 'search' | 'share' | 'scroll' | 'swipe' | 'play' | 'pause' | 'download' | 'favorite' | 'rate' | 'review' | string;
+  element?: string;
+  screen?: string;
+  query?: string;
+  resultsCount?: number;
+  position?: number;
+  contentId?: string;
+  contentType?: string;
+  rating?: number;
+  destination?: string;
+  depth?: number;
+  duration?: number;
+  custom?: Record<string, unknown>;
+}
+
+export interface IdentityEvent {
+  action: 'sign_up' | 'sign_in' | 'sign_out' | 'delete' | 'verify' | 'password_reset' | 'password_change' | 'profile_update' | string;
+  method?: 'email' | 'phone' | 'social' | 'sso' | 'biometric' | string;
+  provider?: string;
+  verificationType?: 'email' | 'phone' | 'document' | 'biometric' | string;
+  custom?: Record<string, unknown>;
+}
+
+export interface GrowthEvent {
+  action: 'earn' | 'redeem' | 'tier_change' | 'expire' | 'invite' | 'invite_accepted' | 'referral_convert' | string;
+  points?: number;
+  tier?: string;
+  previousTier?: string;
+  rewardId?: string;
+  rewardType?: 'discount' | 'cashback' | 'points' | 'gift' | string;
+  inviteCode?: string;
+  referrerId?: string;
+  referredId?: string;
+  custom?: Record<string, unknown>;
+}
+
+export interface AccountEvent {
+  action: 'view' | 'update' | 'verify' | 'close' | 'lock' | 'unlock' | 'statement' | 'limit_change' | string;
+  accountId?: string;
+  accountType?: string;
+  balance?: number;
+  currency?: string;
+  period?: string;
+  newLimit?: number;
+  limitType?: string;
+  custom?: Record<string, unknown>;
+}
+
+export interface SystemEvent {
+  action: 'session_start' | 'session_end' | 'app_open' | 'app_background' | 'push_delivered' | 'push_opened' | 'push_dismissed' | 'experiment_exposure' | 'error' | 'crash' | string;
+  duration?: number;
+  screenCount?: number;
+  messageId?: string;
+  campaignId?: string;
+  channel?: string;
+  experimentId?: string;
+  variantId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  custom?: Record<string, unknown>;
+}
+
+export interface LocationEvent {
+  action: 'geofence_enter' | 'geofence_exit' | 'geofence_dwell' | 'store_visit' | 'zone_enter' | 'zone_exit' | 'location_update' | 'location_permission' | string;
+  fenceId?: string;
+  name?: string;
+  locationType?: 'store' | 'branch' | 'restaurant' | 'airport' | 'mall' | 'zone' | string;
+  dwellTime?: number;
+  lat?: number;
+  lng?: number;
+  accuracy?: number;
+  source?: string;
+  permissionStatus?: 'granted' | 'denied' | 'restricted' | string;
+  custom?: Record<string, unknown>;
+}
+
+export interface IPGeolocation {
+  ip: string;
+  country: string;
+  countryName: string;
+  region?: string;
+  regionName?: string;
+  city?: string;
+  postalCode?: string;
+  lat?: number;
+  lng?: number;
+  timezone?: string;
+  utcOffset?: number;
+  isp?: string;
+  org?: string;
+  isProxy?: boolean;
+  isHosting?: boolean;
+}
+
 export interface ContentFlowContextType {
   // State
   isReady: boolean;
@@ -86,23 +200,50 @@ export interface ContentFlowContextType {
   error: string | null;
   liveStatus: LiveStatus | null;
 
-  // Methods
+  // Identity Methods
   identify: (userId?: string, traits?: UserTraits) => Promise<void>;
   setUserId: (userId: string) => Promise<void>;
   updateTraits: (traits: UserTraits) => Promise<void>;
   setConsent: (options: ConsentOptions) => Promise<void>;
+
+  // Generic track (legacy)
   trackEvent: (eventType: string, data?: Record<string, any>) => void;
+
+  // Typed Event Methods (v2.0)
+  commerce: (event: CommerceEvent) => void;
+  engagement: (event: EngagementEvent) => void;
+  identity: (event: IdentityEvent) => void;
+  growth: (event: GrowthEvent) => void;
+  account: (event: AccountEvent) => void;
+  system: (event: SystemEvent) => void;
+  location: (event: LocationEvent) => void;
+
+  // Identity Events
   trackSignUp: (userId: string, traits?: UserTraits) => void;
   trackSignIn: (userId: string) => void;
+
+  // Block Events
   trackImpression: (block: CFBlock | BlockContent) => void;
   trackTap: (block: CFBlock | BlockContent) => void;
+
+  // Content
   sync: () => Promise<void>;
-  registerPush: () => Promise<any>;
-  unregisterPush: () => Promise<void>;
   getSlotContent: (slotId: string) => BlockContent | null;
   getBlock: (key: string) => CFBlock | undefined;
+
+  // Push
+  registerPush: () => Promise<any>;
+  unregisterPush: () => Promise<void>;
+
+  // Geolocation
+  getIPGeolocation: () => Promise<IPGeolocation | null>;
+
+  // Lifecycle
+  flush: () => Promise<void>;
   reset: () => Promise<void>;
   logout: () => Promise<void>;
+
+  // Localization
   setLocale: (locale: string) => Promise<void>;
   t: (key: string, fallback?: string) => string;
 }
@@ -272,6 +413,42 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     client.track(eventType, { key: eventType, ...data });
   }, [client]);
 
+  // Typed event methods (v2.0)
+  const commerce = useCallback((event: CommerceEvent) => {
+    if (!client) return;
+    client.track(`commerce:${event.action}`, { key: `commerce:${event.action}`, ...event });
+  }, [client]);
+
+  const engagement = useCallback((event: EngagementEvent) => {
+    if (!client) return;
+    client.track(`engagement:${event.action}`, { key: `engagement:${event.action}`, ...event });
+  }, [client]);
+
+  const identityEvent = useCallback((event: IdentityEvent) => {
+    if (!client) return;
+    client.track(`identity:${event.action}`, { key: `identity:${event.action}`, ...event });
+  }, [client]);
+
+  const growth = useCallback((event: GrowthEvent) => {
+    if (!client) return;
+    client.track(`growth:${event.action}`, { key: `growth:${event.action}`, ...event });
+  }, [client]);
+
+  const accountEvent = useCallback((event: AccountEvent) => {
+    if (!client) return;
+    client.track(`account:${event.action}`, { key: `account:${event.action}`, ...event });
+  }, [client]);
+
+  const systemEvent = useCallback((event: SystemEvent) => {
+    if (!client) return;
+    client.track(`system:${event.action}`, { key: `system:${event.action}`, ...event });
+  }, [client]);
+
+  const locationEvent = useCallback((event: LocationEvent) => {
+    if (!client) return;
+    client.track(`location:${event.action}`, { key: `location:${event.action}`, ...event });
+  }, [client]);
+
   const trackSignUp = useCallback(async (newUserId: string, traits?: UserTraits) => {
     if (!client) return;
     await setUserId(newUserId);
@@ -369,7 +546,34 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     return client.t(key, fallback);
   }, [client]);
 
+  const flush = useCallback(async () => {
+    if (!client) return;
+    // The SDK handles flushing internally, but we can force a sync
+    await client.sync();
+  }, [client]);
+
+  const getIPGeolocation = useCallback(async (): Promise<IPGeolocation | null> => {
+    if (!client) return null;
+    // IP geolocation would need to be fetched from the SDK's geo endpoint
+    // For now, return null as the client method may not be directly exposed
+    try {
+      const response = await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/geo/ip`, {
+        headers: {
+          'X-CF-Key': CF_CONFIG.publicKey,
+          'X-Tenant-Id': CF_CONFIG.tenantId || '',
+        },
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (err) {
+      console.error('[ContentFlow] IP Geolocation error:', err);
+    }
+    return null;
+  }, [client]);
+
   const contextValue: ContentFlowContextType = {
+    // State
     isReady,
     isInitializing,
     deviceId,
@@ -379,22 +583,51 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     config: CF_CONFIG,
     error,
     liveStatus,
+
+    // Identity
     identify,
     setUserId,
     updateTraits,
     setConsent,
+
+    // Generic track
     trackEvent,
+
+    // Typed events (v2.0)
+    commerce,
+    engagement,
+    identity: identityEvent,
+    growth,
+    account: accountEvent,
+    system: systemEvent,
+    location: locationEvent,
+
+    // Identity events
     trackSignUp,
     trackSignIn,
+
+    // Block events
     trackImpression,
     trackTap,
+
+    // Content
     sync,
-    registerPush: registerPushHandler,
-    unregisterPush: unregisterPushHandler,
     getSlotContent,
     getBlock,
+
+    // Push
+    registerPush: registerPushHandler,
+    unregisterPush: unregisterPushHandler,
+
+    // Geolocation
+    getIPGeolocation,
+
+    // Lifecycle
+    flush,
     reset,
     logout,
+
+    // Localization
     setLocale,
     t,
   };
