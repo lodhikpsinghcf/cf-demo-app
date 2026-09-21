@@ -1,50 +1,43 @@
 /**
  * ContentFlow SDK Provider
  *
- * Production-ready SDK integration for React Native / Expo apps.
- * Provides device identification, event tracking, consent management,
- * and dynamic content delivery.
- *
- * Usage:
- *   import { useContentFlow } from './providers/ContentFlowProvider';
- *   const { identify, trackEvent, sync } = useContentFlow();
+ * Production-ready SDK integration using @contentflow/sdk v2.0.0
+ * Wraps the official SDK with app-specific configuration and helpers.
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react';
-import * as Device from 'expo-device';
+import {
+  CFProvider as CFSDKProvider,
+  CFBlock,
+  CFConfig,
+  CFLiveStatus,
+  useCF,
+  useCFBlock,
+  useCFBlocks,
+  useLiveStatus,
+} from '@contentflow/sdk/react-native';
+import { registerExpoPush, unregisterExpoPush } from '@contentflow/sdk/expo';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // SDK Configuration from environment variables
-const CF_CONFIG = {
+const CF_CONFIG: CFConfig = {
   baseUrl: process.env.EXPO_PUBLIC_CF_BASE_URL || 'https://api.contentflow.click',
   tenantId: process.env.EXPO_PUBLIC_CF_TENANT_ID || '',
-  sdkKey: process.env.EXPO_PUBLIC_CF_SDK_KEY || '',
-  writeKey: process.env.EXPO_PUBLIC_CF_WRITE_KEY || '',
-  readKey: process.env.EXPO_PUBLIC_CF_READ_KEY || '',
-  appName: process.env.EXPO_PUBLIC_APP_NAME || 'CF Demo',
-  appVersion: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
+  publicKey: process.env.EXPO_PUBLIC_CF_SDK_KEY || '',
+  consent: false,
+  debug: __DEV__,
 };
 
 // Storage keys
 const STORAGE_KEYS = {
-  DEVICE_ID: '@cf_device_id',
   USER_ID: '@cf_user_id',
   CONSENT: '@cf_consent',
-  DEVICE_CONSENT: '@cf_device_consent', // For event tracking consent
+  ONBOARDING: '@cf_onboarding_complete',
 };
 
 // Types
-interface ContentFlowConfig {
-  baseUrl: string;
-  tenantId: string;
-  sdkKey: string;
-  writeKey: string;
-  readKey: string;
-  appName: string;
-  appVersion: string;
-}
-
-interface ConsentOptions {
+export interface ConsentOptions {
   marketing?: boolean;
   push?: boolean;
   sms?: boolean;
@@ -52,11 +45,11 @@ interface ConsentOptions {
   locationTracking?: boolean;
 }
 
-interface UserTraits {
+export interface UserTraits {
   [key: string]: string | number | boolean | undefined;
 }
 
-interface BlockContent {
+export interface BlockContent {
   key: string;
   type: string;
   slotId?: string;
@@ -64,19 +57,36 @@ interface BlockContent {
   subtitle?: string;
   description?: string;
   imageUrl?: string;
+  icon?: string;
+  backgroundColor?: string;
+  gradientEnd?: string;
+  badge?: string;
+  value?: string;
   cta?: { label: string; url: string };
+  items?: any[];
   [key: string]: any;
 }
 
-interface ContentFlowContextType {
+export interface LiveStatus {
+  mode: 'stream' | 'poll' | 'off';
+  state: 'connecting' | 'connected' | 'reconnecting' | 'polling' | 'stopped';
+  isOnline: boolean;
+  reason?: string;
+}
+
+export interface ContentFlowContextType {
+  // State
   isReady: boolean;
   isInitializing: boolean;
   deviceId: string | null;
   userId: string | null;
   consent: ConsentOptions;
   content: Record<string, BlockContent>;
-  config: ContentFlowConfig;
+  config: CFConfig;
   error: string | null;
+  liveStatus: LiveStatus | null;
+
+  // Methods
   identify: (userId?: string, traits?: UserTraits) => Promise<void>;
   setUserId: (userId: string) => Promise<void>;
   updateTraits: (traits: UserTraits) => Promise<void>;
@@ -84,42 +94,26 @@ interface ContentFlowContextType {
   trackEvent: (eventType: string, data?: Record<string, any>) => void;
   trackSignUp: (userId: string, traits?: UserTraits) => void;
   trackSignIn: (userId: string) => void;
+  trackImpression: (block: CFBlock | BlockContent) => void;
+  trackTap: (block: CFBlock | BlockContent) => void;
   sync: () => Promise<void>;
-  registerPush: (token: string) => Promise<void>;
+  registerPush: () => Promise<any>;
+  unregisterPush: () => Promise<void>;
   getSlotContent: (slotId: string) => BlockContent | null;
+  getBlock: (key: string) => CFBlock | undefined;
   reset: () => Promise<void>;
+  logout: () => Promise<void>;
+  setLocale: (locale: string) => Promise<void>;
+  t: (key: string, fallback?: string) => string;
 }
 
 const ContentFlowContext = createContext<ContentFlowContextType | null>(null);
 
-function generateDeviceId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+// Inner provider that has access to CFClient via useCF hook
+function ContentFlowInner({ children }: { children: ReactNode }) {
+  const client = useCF();
+  const sdkLiveStatus = useLiveStatus();
 
-async function apiCall(
-  method: 'GET' | 'POST',
-  endpoint: string,
-  body?: any,
-  headers?: Record<string, string>
-): Promise<any> {
-  const url = `${CF_CONFIG.baseUrl}${endpoint}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CF-Key': CF_CONFIG.sdkKey,
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return response.json();
-}
-
-export function ContentFlowProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -127,48 +121,82 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
   const [consent, setConsentState] = useState<ConsentOptions>({});
   const [content, setContent] = useState<Record<string, BlockContent>>({});
   const [error, setError] = useState<string | null>(null);
+  const [liveStatus, setLiveStatus] = useState<LiveStatus | null>(null);
+
   const initialized = useRef(false);
 
+  // Convert CFBlock to BlockContent
+  const blockToContent = useCallback((block: CFBlock): BlockContent => {
+    const cta = block.get('cta') as { label?: string; url?: string } | null;
+    return {
+      key: block.key,
+      type: (block.get('type') as string) || 'default',
+      slotId: block.get('slotId') as string | undefined,
+      title: block.title || (block.get('title') as string | undefined),
+      subtitle: block.get('subtitle') as string | undefined,
+      description: block.body || (block.get('description') as string | undefined),
+      imageUrl: block.imageUrl || (block.get('imageUrl') as string) || (block.get('image_url') as string | undefined),
+      icon: block.get('icon') as string | undefined,
+      backgroundColor: block.get('backgroundColor') as string || block.get('background_color') as string | undefined,
+      gradientEnd: block.get('gradientEnd') as string || block.get('gradient_end') as string | undefined,
+      badge: block.get('badge') as string | undefined,
+      value: block.get('value') as string | undefined,
+      cta: cta ? {
+        label: cta.label || block.ctaLabel || (block.get('cta_label') as string) || '',
+        url: cta.url || (block.get('cta_url') as string) || '',
+      } : block.ctaLabel ? { label: block.ctaLabel, url: block.get('cta_url') as string || '' } : undefined,
+      items: block.getCollection?.('items') || (block.get('items') as any[]),
+    };
+  }, []);
+
+  // Initialize SDK when client is available
   useEffect(() => {
-    if (initialized.current) return;
+    if (initialized.current || !client) return;
     initialized.current = true;
 
     async function init() {
       try {
         setIsInitializing(true);
-        let storedDeviceId = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_ID);
-        if (!storedDeviceId) {
-          storedDeviceId = generateDeviceId();
-          await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, storedDeviceId);
-        }
-        setDeviceId(storedDeviceId);
 
+        // Load stored user ID
         const storedUserId = await AsyncStorage.getItem(STORAGE_KEYS.USER_ID);
-        if (storedUserId) setUserIdState(storedUserId);
+        if (storedUserId) {
+          setUserIdState(storedUserId);
+          await client.setUserId(storedUserId);
+        }
 
+        // Load stored consent
         const storedConsent = await AsyncStorage.getItem(STORAGE_KEYS.CONSENT);
-        if (storedConsent) setConsentState(JSON.parse(storedConsent));
-
-        // Check if device-level consent was previously granted
-        const storedDeviceConsent = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_CONSENT);
-        const hasDeviceConsent = storedDeviceConsent === 'true';
-
-        const response = await apiCall('POST', '/sdk/v1/identify', {
-          deviceId: storedDeviceId,
-          userId: storedUserId || undefined,
-          consent: hasDeviceConsent, // Include device consent for event tracking
-          platform: Device.osName?.toLowerCase() || 'unknown',
-          osVersion: Device.osVersion || 'unknown',
-          appVersion: CF_CONFIG.appVersion,
-          deviceModel: Device.modelName || 'unknown',
-        });
-
-        if (response.success) {
-          console.log('[ContentFlow] Initialized');
-          if (response.data?.consent !== undefined) {
-            setConsentState(prev => ({ ...prev, marketing: response.data.consent }));
+        if (storedConsent) {
+          const parsed = JSON.parse(storedConsent);
+          setConsentState(parsed);
+          if (parsed.marketing) {
+            await client.setConsent(true);
           }
         }
+
+        // Identify device
+        const receipt = await client.identify();
+        if (receipt) {
+          setDeviceId(client.cfg?.deviceId || null);
+        }
+
+        // Start live updates
+        await client.start();
+
+        // Get initial content
+        const blocks = await client.sync();
+        if (blocks) {
+          const contentMap: Record<string, BlockContent> = {};
+          for (const block of blocks) {
+            const slotId = (block.get('slotId') as string) || block.key;
+            contentMap[slotId] = blockToContent(block);
+          }
+          setContent(contentMap);
+          console.log(`[ContentFlow] Synced ${blocks.length} blocks`);
+        }
+
+        console.log('[ContentFlow] SDK initialized successfully');
         setIsReady(true);
       } catch (err) {
         console.error('[ContentFlow] Init error:', err);
@@ -178,110 +206,212 @@ export function ContentFlowProvider({ children }: { children: ReactNode }) {
         setIsInitializing(false);
       }
     }
+
     init();
-  }, []);
+
+    return () => {
+      if (client) {
+        client.dispose();
+      }
+    };
+  }, [client, blockToContent]);
+
+  // Update live status when SDK status changes
+  useEffect(() => {
+    if (sdkLiveStatus) {
+      setLiveStatus({
+        mode: sdkLiveStatus.mode,
+        state: sdkLiveStatus.state,
+        isOnline: sdkLiveStatus.state === 'connected' || sdkLiveStatus.state === 'polling',
+        reason: sdkLiveStatus.reason,
+      });
+    }
+  }, [sdkLiveStatus]);
 
   const identify = useCallback(async (newUserId?: string, traits?: UserTraits) => {
-    if (!deviceId) return;
+    if (!client) return;
+
     if (newUserId) {
       setUserIdState(newUserId);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_ID, newUserId);
+      await client.setUserId(newUserId);
     }
-    await apiCall('POST', '/sdk/v1/identify', { deviceId, userId: newUserId || userId, traits });
-  }, [deviceId, userId]);
 
-  const setUserId = useCallback(async (id: string) => identify(id), [identify]);
-  const updateTraits = useCallback(async (traits: UserTraits) => identify(undefined, traits), [identify]);
+    if (traits) {
+      await client.identify({ traits });
+    }
+  }, [client]);
+
+  const setUserId = useCallback(async (id: string) => {
+    if (!client) return;
+    setUserIdState(id);
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_ID, id);
+    await client.setUserId(id);
+  }, [client]);
+
+  const updateTraits = useCallback(async (traits: UserTraits) => {
+    if (!client) return;
+    await client.identify({ traits });
+  }, [client]);
 
   const setConsent = useCallback(async (options: ConsentOptions) => {
+    if (!client) return;
+
     const newConsent = { ...consent, ...options };
     setConsentState(newConsent);
     await AsyncStorage.setItem(STORAGE_KEYS.CONSENT, JSON.stringify(newConsent));
 
-    if (deviceId) {
-      // If marketing consent is granted, enable device-level consent for event tracking
-      if (options.marketing === true) {
-        await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_CONSENT, 'true');
-        await apiCall('POST', '/sdk/v1/identify', {
-          deviceId,
-          userId: userId || undefined,
-          consent: true,
-          platform: Device.osName?.toLowerCase() || 'unknown',
-        });
-      } else if (options.marketing === false) {
-        await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_CONSENT, 'false');
-        await apiCall('POST', '/sdk/v1/identify', {
-          deviceId,
-          userId: userId || undefined,
-          consent: false,
-          platform: Device.osName?.toLowerCase() || 'unknown',
-        });
-      }
-
-      // Also send channel-specific consent
-      await apiCall('POST', '/sdk/v1/consent', { deviceId, consent: options });
+    // Set analytics consent
+    if (options.marketing !== undefined) {
+      await client.setConsent(options.marketing);
     }
-  }, [deviceId, userId, consent]);
+  }, [client, consent]);
 
   const trackEvent = useCallback((eventType: string, data?: Record<string, any>) => {
-    if (!deviceId) return;
-    apiCall('POST', '/sdk/v1/events', {
-      deviceId, userId,
-      events: [{ type: eventType, timestamp: new Date().toISOString(), custom: data }],
-    }).catch(console.error);
-  }, [deviceId, userId]);
+    if (!client) return;
+    client.track(eventType, { key: eventType, ...data });
+  }, [client]);
 
-  const trackSignUp = useCallback((newUserId: string, traits?: UserTraits) => {
-    setUserId(newUserId);
-    trackEvent('sign_up', { userId: newUserId, ...traits });
-  }, [setUserId, trackEvent]);
+  const trackSignUp = useCallback(async (newUserId: string, traits?: UserTraits) => {
+    if (!client) return;
+    await setUserId(newUserId);
+    await client.trackSignUp({
+      username: newUserId,
+      fullName: traits?.name as string,
+      email: traits?.email as string,
+      phone: traits?.phone as string,
+    });
+  }, [client, setUserId]);
 
-  const trackSignIn = useCallback((existingUserId: string) => {
-    setUserId(existingUserId);
-    trackEvent('sign_in', { userId: existingUserId });
-  }, [setUserId, trackEvent]);
+  const trackSignIn = useCallback(async (existingUserId: string) => {
+    if (!client) return;
+    await setUserId(existingUserId);
+    await client.trackSignIn({ username: existingUserId });
+  }, [client, setUserId]);
+
+  const trackImpression = useCallback((block: CFBlock | BlockContent) => {
+    if (!client) return;
+    if ('get' in block && typeof block.get === 'function') {
+      client.trackImpression(block as CFBlock);
+    }
+  }, [client]);
+
+  const trackTap = useCallback((block: CFBlock | BlockContent) => {
+    if (!client) return;
+    if ('get' in block && typeof block.get === 'function') {
+      client.trackTap(block as CFBlock);
+    }
+  }, [client]);
 
   const sync = useCallback(async () => {
-    if (!deviceId) return;
-    try {
-      const response = await apiCall('GET', '/sdk/v1/sync', undefined, { 'X-CF-Device-Id': deviceId });
-      if (response.success && response.data?.blocks) {
-        const contentMap: Record<string, BlockContent> = {};
-        for (const block of response.data.blocks) {
-          if (block.slotId) contentMap[block.slotId] = block;
-          if (block.key) contentMap[block.key] = block;
-        }
-        setContent(contentMap);
+    if (!client) return;
+
+    const blocks = await client.sync();
+    if (blocks) {
+      const contentMap: Record<string, BlockContent> = {};
+      for (const block of blocks) {
+        const slotId = (block.get('slotId') as string) || block.key;
+        contentMap[slotId] = blockToContent(block);
       }
-    } catch (err) { console.error('[ContentFlow] Sync error:', err); }
-  }, [deviceId]);
+      setContent(contentMap);
+      console.log(`[ContentFlow] Synced ${blocks.length} blocks`);
+    }
+  }, [client, blockToContent]);
 
-  const registerPush = useCallback(async (token: string) => {
-    if (!deviceId) return;
-    await apiCall('POST', '/sdk/v1/register-push', {
-      deviceId, userId, token,
-      platform: Device.osName?.toLowerCase() === 'ios' ? 'ios' : 'android',
-    });
-  }, [deviceId, userId]);
+  const registerPushHandler = useCallback(async () => {
+    if (!client) return { status: 'failed', error: new Error('Client not initialized') };
 
-  const getSlotContent = useCallback((slotId: string) => content[slotId] || null, [content]);
+    const result = await registerExpoPush(client, Notifications, { requestPermission: true });
+    console.log('[ContentFlow] Push registration result:', result.status);
+    return result;
+  }, [client]);
+
+  const unregisterPushHandler = useCallback(async () => {
+    if (!client) return;
+    await unregisterExpoPush(client);
+  }, [client]);
+
+  const getSlotContent = useCallback((slotId: string): BlockContent | null => {
+    return content[slotId] || null;
+  }, [content]);
+
+  const getBlock = useCallback((key: string): CFBlock | undefined => {
+    if (!client) return undefined;
+    return client.getBlock(key);
+  }, [client]);
 
   const reset = useCallback(async () => {
     await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
-    setDeviceId(null); setUserIdState(null); setConsentState({}); setContent({});
-    initialized.current = false;
-  }, []);
+    setDeviceId(null);
+    setUserIdState(null);
+    setConsentState({});
+    setContent({});
 
-  useEffect(() => { if (isReady && deviceId) sync(); }, [isReady, deviceId, sync]);
+    if (client) {
+      await client.logout();
+    }
+  }, [client]);
+
+  const logout = useCallback(async () => {
+    if (!client) return;
+    await client.logout();
+    setUserIdState(null);
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_ID);
+  }, [client]);
+
+  const setLocale = useCallback(async (locale: string) => {
+    if (!client) return;
+    await client.setLocale(locale);
+  }, [client]);
+
+  const t = useCallback((key: string, fallback?: string): string => {
+    if (!client) return fallback || key;
+    return client.t(key, fallback);
+  }, [client]);
+
+  const contextValue: ContentFlowContextType = {
+    isReady,
+    isInitializing,
+    deviceId,
+    userId,
+    consent,
+    content,
+    config: CF_CONFIG,
+    error,
+    liveStatus,
+    identify,
+    setUserId,
+    updateTraits,
+    setConsent,
+    trackEvent,
+    trackSignUp,
+    trackSignIn,
+    trackImpression,
+    trackTap,
+    sync,
+    registerPush: registerPushHandler,
+    unregisterPush: unregisterPushHandler,
+    getSlotContent,
+    getBlock,
+    reset,
+    logout,
+    setLocale,
+    t,
+  };
 
   return (
-    <ContentFlowContext.Provider value={{
-      isReady, isInitializing, deviceId, userId, consent, content, config: CF_CONFIG, error,
-      identify, setUserId, updateTraits, setConsent, trackEvent, trackSignUp, trackSignIn,
-      sync, registerPush, getSlotContent, reset,
-    }}>
+    <ContentFlowContext.Provider value={contextValue}>
       {children}
     </ContentFlowContext.Provider>
+  );
+}
+
+// Main provider that wraps CFSDKProvider
+export function ContentFlowProvider({ children }: { children: ReactNode }) {
+  return (
+    <CFSDKProvider config={CF_CONFIG}>
+      <ContentFlowInner>{children}</ContentFlowInner>
+    </CFSDKProvider>
   );
 }
 
@@ -291,4 +421,8 @@ export function useContentFlow() {
   return context;
 }
 
-export type { ContentFlowConfig, ConsentOptions, UserTraits, BlockContent, ContentFlowContextType };
+// Re-export SDK hooks for direct usage
+export { useCFBlock, useCFBlocks, useLiveStatus } from '@contentflow/sdk/react-native';
+
+// Re-export types
+export type { CFBlock, CFConfig, CFLiveStatus };

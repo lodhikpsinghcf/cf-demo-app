@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   bannerImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   bannerOverlay: {
     flex: 1,
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   fullwidthImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   fullwidthOverlay: {
     flex: 1,

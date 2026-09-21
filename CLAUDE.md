@@ -24,8 +24,36 @@ Scan QR code with Expo Go app on iOS/Android.
 **Key Files:**
 - `providers/ContentFlowProvider.tsx` — SDK integration (identify, events, consent, sync)
 - `components/CFSlot.tsx` — Dynamic content slot component
+- `components/ConsentModal.tsx` — Privacy & permissions consent popup
+- `app/index.tsx` — Welcome/onboarding screen
+- `app/(auth)/sign-in.tsx` — Sign in screen
+- `app/(auth)/sign-up.tsx` — Sign up screen with consent flow
 - `app/(tabs)/*.tsx` — Screen implementations (Home, Wallet, Travel, Food, Settings)
 - `app/_layout.tsx` — Root layout with ContentFlowProvider wrapper
+
+## Authentication Flow
+
+1. **Welcome Screen** (`app/index.tsx`)
+   - Shows on first launch
+   - Features overview
+   - "Get Started" → Consent Modal → Sign Up
+   - "Sign In" → Sign In screen
+   - "Continue as Guest" → Main app
+
+2. **Consent Modal** (`components/ConsentModal.tsx`)
+   - Privacy & permissions popup
+   - Toggles: Marketing, Push, Location, Email, SMS
+   - Accept All / Accept Selected / Decline All
+
+3. **Sign Up** (`app/(auth)/sign-up.tsx`)
+   - Name, Email, Phone (optional), Password
+   - Terms & Conditions checkbox
+   - Shows consent modal after signup
+
+4. **Sign In** (`app/(auth)/sign-in.tsx`)
+   - Email & Password login
+   - Social login placeholders (Google, Apple)
+   - "Forgot Password" link
 
 ## SDK Configuration
 
@@ -48,14 +76,29 @@ EXPO_PUBLIC_CF_READ_KEY=ws_7d0194ac4b94287a59342f21_read
 | `/sdk/v1/sync` | GET | Fetch dynamic content for slots |
 | `/sdk/v1/register-push` | POST | Register FCM/APNs push token |
 
-## Dynamic Content Slots (16 total)
+## Dynamic Content Slots (28 total)
 
 | Screen | Slot IDs |
 |--------|----------|
-| Home | `home-hero`, `home-inline-1`, `home-promo`, `home-featured`, `home-bottom` |
-| Wallet | `wallet-promo`, `wallet-card-offers`, `wallet-rewards`, `wallet-bottom` |
-| Travel | `travel-hero`, `travel-promo`, `travel-hotels`, `travel-bottom` |
-| Food | `food-hero`, `food-promo`, `food-cuisines`, `food-bottom` |
+| Home (10) | `home-stories`, `home-hero`, `home-inline-1`, `home-inline-2`, `home-promo`, `home-countdown`, `home-featured`, `home-services-promo`, `home-carousel`, `home-fullwidth`, `home-bottom` |
+| Wallet (8) | `wallet-promo`, `wallet-upgrade`, `wallet-card-offers`, `wallet-insights`, `wallet-rewards`, `wallet-cashback`, `wallet-goals`, `wallet-bottom` |
+| Travel (8) | `travel-flash`, `travel-hero`, `travel-spotlight`, `travel-promo`, `travel-lastminute`, `travel-hotels`, `travel-miles`, `travel-bottom` |
+| Food (7) | `food-flash`, `food-hero`, `food-promo`, `food-recommended`, `food-cuisines`, `food-cuisine-grid`, `food-rewards`, `food-bottom` |
+
+### Supported Block Types
+
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `banner` / `hero` | Full-width promotional banner | `title`, `subtitle`, `imageUrl`, `backgroundColor`, `gradientEnd`, `badge`, `cta` |
+| `card` | Horizontal card with image | `title`, `description`, `imageUrl`, `cta` |
+| `promo` / `inline` | Compact promotional strip | `title`, `subtitle`, `icon`, `imageUrl`, `backgroundColor`, `cta` |
+| `reward` | Points/rewards display | `title`, `value`, `icon`, `cta` |
+| `carousel` | Horizontal scrolling cards | `items[]` with `title`, `subtitle`, `imageUrl`, `url` |
+| `story` | Instagram-style circles | `items[]` with `title`, `imageUrl`, `icon`, `hasNew`, `url` |
+| `grid` | 2x2 or 3x3 tile grid | `items[]`, `columns` (default: 2) |
+| `countdown` | Time-limited offer with timer | `title`, `subtitle`, `hours`, `minutes`, `seconds` |
+| `fullwidth` | Edge-to-edge large banner | `title`, `subtitle`, `imageUrl`, `badge`, `cta` |
+| `spotlight` | Featured item with side image | `title`, `description`, `imageUrl`, `badge`, `cta` |
 
 Slots show placeholders until content is configured in ContentFlow dashboard → Dynamic Blocks.
 
@@ -65,26 +108,43 @@ Slots show placeholders until content is configured in ContentFlow dashboard →
 const {
   // State
   isReady,        // boolean - SDK initialized
+  isInitializing, // boolean - SDK currently initializing
+  isOnline,       // boolean - network connectivity status
   deviceId,       // string | null - unique device ID
   userId,         // string | null - logged-in user ID
   consent,        // ConsentOptions - {marketing, push, sms, email, locationTracking}
   content,        // Record<string, BlockContent> - synced content by slot
   config,         // SDK configuration from env
   error,          // string | null - last error
+  liveStatus,     // LiveStatus - {isOnline, queueSize, lastSyncTime, pendingEvents}
   
   // Methods
   identify,       // (userId?, traits?) => Promise<void>
   setUserId,      // (id) => Promise<void>
   setConsent,     // (options) => Promise<void>
-  trackEvent,     // (type, data?) => void (fire-and-forget)
+  trackEvent,     // (type, data?) => void - queued with offline support
   trackSignUp,    // (userId, traits?) => void
   trackSignIn,    // (userId) => void
   sync,           // () => Promise<void>
   registerPush,   // (token) => Promise<void>
   getSlotContent, // (slotId) => BlockContent | null
   reset,          // () => Promise<void> - clear all SDK data
+  flushEvents,    // () => Promise<void> - manually flush event queue
+  getQueueSize,   // () => number - get pending events count
 } = useContentFlow();
 ```
+
+### Production SDK Features
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| Offline Queue | Enabled | Events queued when offline, auto-flushed on reconnect |
+| Max Queue Size | 100 | Oldest events dropped when queue is full |
+| Event Batching | 10 events | Events batched before sending |
+| Flush Interval | 15 seconds | Auto-flush timer for pending events |
+| Rate Limiting | 10/second | Token bucket rate limiter |
+| Retry Attempts | 3 | Exponential backoff retries |
+| Industry Config | banking | Passed to all SDK endpoints |
 
 ## Testing the SDK
 
@@ -118,6 +178,12 @@ curl -X POST https://api.contentflow.click/sdk/v1/events \
 
 | Event | Screen | Trigger |
 |-------|--------|---------|
+| `onboarding_consent_completed` | Welcome | User completes consent modal |
+| `onboarding_skipped` | Welcome | User taps "Continue as Guest" |
+| `sign_up_completed` | Sign Up | Successful account creation |
+| `sign_up_attempt` | Sign Up | Social sign up button tap |
+| `sign_in_completed` | Sign In | Successful login |
+| `sign_in_attempt` | Sign In | Social sign in button tap |
 | `quick_action` | Home | Tap Send/Request/Travel/Food buttons |
 | `wallet_action` | Wallet | Tap Add Money/Send/Withdraw |
 | `flight_search` | Travel | Tap Search Flights |
@@ -139,11 +205,13 @@ curl -X POST https://api.contentflow.click/sdk/v1/events \
 - [ ] Add E2E tests with Detox or Maestro
 - [ ] Implement push notification handling (currently only registers token)
 - [ ] Add deep linking support for campaign URLs
-- [ ] Add offline mode / queue events when offline
+- [x] Add offline mode / queue events when offline ✅
 - [ ] Add A/B test variant tracking
 - [ ] Implement real images instead of emoji placeholders
-- [ ] Add pull-to-refresh for content sync
-- [ ] Add skeleton loaders while syncing
+- [x] Add pull-to-refresh for content sync ✅
+- [x] Add skeleton loaders while syncing ✅
+- [x] Expand dynamic content slots (16 → 28) ✅
+- [x] Add new block types (carousel, story, grid, countdown, fullwidth, spotlight) ✅
 
 ## Related Repositories
 

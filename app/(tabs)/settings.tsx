@@ -14,10 +14,13 @@ export default function SettingsScreen() {
     trackEvent,
     config,
     reset,
+    liveStatus,
   } = useContentFlow();
 
   const [showUserIdModal, setShowUserIdModal] = useState(false);
   const [userIdInput, setUserIdInput] = useState('');
+
+  const isOnline = liveStatus?.isOnline ?? false;
 
   const handleConsentToggle = async (key: 'marketing' | 'push' | 'sms' | 'email' | 'locationTracking', value: boolean) => {
     await setConsent({ [key]: value });
@@ -78,6 +81,9 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>SDK Status</Text>
         <View style={styles.card}>
           <SettingRow label="Status" value={isReady ? '✅ Connected' : '⏳ Connecting...'} />
+          <SettingRow label="Network" value={isOnline ? '🟢 Online' : '🔴 Offline'} />
+          <SettingRow label="Live Mode" value={liveStatus?.mode || 'off'} />
+          <SettingRow label="Live State" value={liveStatus?.state || 'stopped'} />
           <SettingRow label="Device ID" value={deviceId ? `${deviceId.slice(0, 8)}...${deviceId.slice(-4)}` : 'Generating...'} />
           <SettingRow label="User ID" value={userId || 'Anonymous'} />
         </View>
@@ -173,9 +179,9 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Configuration</Text>
         <View style={styles.card}>
-          <SettingRow label="App Name" value={config.appName} />
-          <SettingRow label="Version" value={config.appVersion} />
-          <SettingRow label="API Endpoint" value={config.baseUrl.replace('https://', '')} />
+          <SettingRow label="App Name" value="CF Demo App" />
+          <SettingRow label="SDK Version" value="2.0.0" />
+          <SettingRow label="API Endpoint" value={(config.baseUrl || '').replace('https://', '')} />
         </View>
       </View>
 
@@ -184,7 +190,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>SDK Keys</Text>
         <View style={styles.card}>
           <SettingRow label="Tenant ID" value={config.tenantId ? `${config.tenantId.slice(0, 12)}...` : 'Not configured'} />
-          <SettingRow label="SDK Key" value={config.sdkKey ? `${config.sdkKey.slice(0, 12)}...` : 'Not configured'} />
+          <SettingRow label="Public Key" value={config.publicKey ? `${config.publicKey.slice(0, 12)}...` : 'Not configured'} />
         </View>
       </View>
 
@@ -198,10 +204,10 @@ export default function SettingsScreen() {
           <Text style={styles.debugValue} selectable>{userId || 'Anonymous user'}</Text>
           <Text style={styles.debugLabel}>Tenant ID</Text>
           <Text style={styles.debugValue} selectable>{config.tenantId || 'Not configured'}</Text>
-          <Text style={styles.debugLabel}>SDK Key</Text>
-          <Text style={styles.debugValue} selectable>{config.sdkKey || 'Not configured'}</Text>
+          <Text style={styles.debugLabel}>Public Key</Text>
+          <Text style={styles.debugValue} selectable>{config.publicKey || 'Not configured'}</Text>
           <Text style={styles.debugLabel}>API Endpoint</Text>
-          <Text style={styles.debugValue} selectable>{config.baseUrl}</Text>
+          <Text style={styles.debugValue} selectable>{config.baseUrl || 'Not configured'}</Text>
         </View>
       </View>
 
