@@ -25,9 +25,11 @@ interface CFSlotProps {
 }
 
 export function CFSlot({ slotId, style, children, variant = 'default', showSkeleton = true }: CFSlotProps) {
-  const { getSlotContent, trackEvent, isReady } = useContentFlow();
+  const { getSlotContent, getBlock, trackImpression, trackTap, isReady } = useContentFlow();
   const content = getSlotContent(slotId);
+  const block = getBlock(slotId);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
   const shimmerAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
@@ -48,23 +50,26 @@ export function CFSlot({ slotId, style, children, variant = 'default', showSkele
     }
   }, [isLoading, showSkeleton]);
 
+  // Track impression once when block content is loaded
   useEffect(() => {
-    if (content && isReady) {
-      trackEvent('impression', {
-        slotId,
-        blockKey: content.key,
-        blockType: content.type,
-      });
+    if (content && isReady && !hasTrackedImpression) {
+      if (block) {
+        trackImpression(block);
+      } else {
+        trackImpression(content);
+      }
+      setHasTrackedImpression(true);
     }
-  }, [content, slotId, isReady]);
+  }, [content, block, isReady, hasTrackedImpression, trackImpression]);
 
   const handleTap = () => {
     if (content) {
-      trackEvent('tap', {
-        slotId,
-        blockKey: content.key,
-        blockType: content.type,
-      });
+      // Track tap event
+      if (block) {
+        trackTap(block);
+      } else {
+        trackTap(content);
+      }
 
       if (content.cta?.url) {
         Linking.openURL(content.cta.url);
@@ -221,7 +226,7 @@ export function CFSlot({ slotId, style, children, variant = 'default', showSkele
                 key={index}
                 style={styles.carouselItem}
                 onPress={() => {
-                  trackEvent('tap', { slotId, itemIndex: index, blockKey: content.key });
+                  if (block) trackTap(block);
                   if (item.url) Linking.openURL(item.url);
                 }}
                 activeOpacity={0.95}
@@ -253,7 +258,7 @@ export function CFSlot({ slotId, style, children, variant = 'default', showSkele
                 key={index}
                 style={styles.storyItem}
                 onPress={() => {
-                  trackEvent('tap', { slotId, itemIndex: index, blockKey: content.key });
+                  if (block) trackTap(block);
                   if (item.url) Linking.openURL(item.url);
                 }}
                 activeOpacity={0.9}
@@ -288,7 +293,7 @@ export function CFSlot({ slotId, style, children, variant = 'default', showSkele
                 key={index}
                 style={[styles.gridItem, { width: `${100 / columns}%` }]}
                 onPress={() => {
-                  trackEvent('tap', { slotId, itemIndex: index, blockKey: content.key });
+                  if (block) trackTap(block);
                   if (item.url) Linking.openURL(item.url);
                 }}
                 activeOpacity={0.9}
