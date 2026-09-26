@@ -11,3 +11,7 @@ npm-debug.*
 web-build/
 .env
 .env.local
+
+# Firebase service account (upload to ContentFlow only, never commit)
+*firebase-adminsdk*.json
+service-account*.json

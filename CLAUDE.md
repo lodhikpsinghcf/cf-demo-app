@@ -66,6 +66,20 @@ CF_WRITE_KEY=ws_7d0194ac4b94287a59342f21_write
 EXPO_PUBLIC_CF_READ_KEY=ws_7d0194ac4b94287a59342f21_read
 ```
 
+## Push Notifications (Android development build)
+
+Expo Go cannot receive ContentFlow pushes (ContentFlow sends straight through FCM/APNs to this app's own ID). Use a development build:
+
+1. Firebase console → add an Android app with package `com.contentflow.demo` → download `google-services.json` into the project root.
+2. Firebase → Project settings → Service accounts → Generate new private key. Upload that JSON in ContentFlow → Notification Channels → Push (FCM). **Never commit it** (git-ignored).
+3. `npx eas-cli login`, then `npx eas-cli init` (writes the real EAS project ID into app.json).
+4. `npx eas-cli build -p android --profile development` → install the APK link on the phone.
+5. `npx expo start --dev-client --tunnel` and open it in the installed app (not Expo Go).
+6. In the app: Settings → Enable Push Notifications. Then send a push campaign from ContentFlow.
+
+With `expo-dev-client` installed, `npx expo start` targets the dev build; press `s` to switch to Expo Go.
+`eas.json` carries the public `EXPO_PUBLIC_*` values because `.env` is not uploaded to EAS.
+
 ## Registering Blocks
 
 Block definitions live in `constants/blocks.ts`. Register them (dashboard fields + one draft instance per block):

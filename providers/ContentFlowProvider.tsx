@@ -20,7 +20,7 @@ import { registerExpoPush, unregisterExpoPush } from '@contentflow/sdk/expo';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { BLOCK_LAYOUTS } from '../constants/blocks';
 
 // SDK Configuration from environment variables
@@ -47,6 +47,15 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+// ContentFlow's FCM pushes name no channel, so Android uses the app's default one
+// (app.json expo-notifications defaultChannel). HIGH importance shows them as banners.
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('default', {
+    name: 'Notifications',
+    importance: Notifications.AndroidImportance.HIGH,
+  }).catch(err => console.log('[ContentFlow] notification channel not created:', err));
+}
 
 // Simplified config for CFSDKProvider
 const CF_SDK_CONFIG: CFConfig = {

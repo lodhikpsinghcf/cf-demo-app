@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CF_BASE_URL": "https://api.contentflow.click/sdk/v1",
+        "EXPO_PUBLIC_CF_TENANT_ID": "ws_fe42dce1fa4616a40d93c7d4",
+        "EXPO_PUBLIC_CF_SDK_KEY": "ws_fe42dce1fa4616a40d93c7d4_app",
+        "EXPO_PUBLIC_APP_NAME": "CF Demo",
+        "EXPO_PUBLIC_APP_VERSION": "1.0.0"
+      }
+    }
+  }
+}
