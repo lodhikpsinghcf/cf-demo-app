@@ -10,7 +10,7 @@
     "register-blocks": "tsx --env-file=.env scripts/register-blocks.ts"
   },
   "dependencies": {
-    "@contentflow/sdk": "file:../contentflow-render/contentflow-sdk/contentflow-sdk-2.1.0.tgz",
+    "@contentflow/sdk": "file:vendor/contentflow-sdk-2.1.0.tgz",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/netinfo": "^12.0.1",
