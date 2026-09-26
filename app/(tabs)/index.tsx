@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Refre
 import { useState, useCallback } from 'react';
 import { useContentFlow } from '../../providers/ContentFlowProvider';
 import { CFSlot } from '../../components/CFSlot';
+import { InAppMessage } from '../../components/InAppMessage';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -24,6 +25,7 @@ export default function HomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#571FE4" />
       }
     >
+      <InAppMessage placement="home" />
       {/* Header */}
       <View style={styles.header}>
         <View>

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimens
 import { useState, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CFSlot } from '../../components/CFSlot';
+import { InAppMessage } from '../../components/InAppMessage';
 import { useContentFlow } from '../../providers/ContentFlowProvider';
 
 const { width } = Dimensions.get('window');
@@ -36,6 +37,7 @@ export default function TravelScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#571FE4" />
       }
     >
+      <InAppMessage placement="travel" />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Travel</Text>

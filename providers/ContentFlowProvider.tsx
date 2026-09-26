@@ -20,6 +20,7 @@ import { registerExpoPush, unregisterExpoPush } from '@contentflow/sdk/expo';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking } from 'react-native';
 import { BLOCK_LAYOUTS } from '../constants/blocks';
 
 // SDK Configuration from environment variables
@@ -33,9 +34,19 @@ const CF_CONFIG: CFConfig = {
 
 // Uploaded images come back as "/api/v1/content/<id>/raw"; the phone needs the full URL.
 const CF_ORIGIN = (CF_CONFIG.baseUrl || '').match(/^https?:\/\/[^/]+/)?.[0] || 'https://api.contentflow.click';
-function absoluteUrl(url?: string): string | undefined {
+export function absoluteUrl(url?: string): string | undefined {
   return url?.startsWith('/') ? `${CF_ORIGIN}${url}` : url;
 }
+
+// Show pushes that arrive while the app is open (by default iOS/Android hide them).
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 // Simplified config for CFSDKProvider
 const CF_SDK_CONFIG: CFConfig = {
@@ -511,6 +522,14 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     if (options.marketing !== undefined) {
       await client.setConsent(options.marketing);
     }
+
+    // Channel consent must reach ContentFlow, or it won't send push/SMS/email to this device.
+    try {
+      const receipt = await client.setChannelConsent(options);
+      console.log('[ContentFlow] Channel consent saved:', receipt.channels);
+    } catch (err) {
+      console.error('[ContentFlow] Channel consent not saved:', err);
+    }
   }, [client, consent]);
 
   const trackEvent = useCallback((eventType: string, data?: Record<string, any>) => {
@@ -671,6 +690,32 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     if (!client) return;
     await unregisterExpoPush(client);
   }, [client]);
+
+  // Push taps: record the open and follow ContentFlow's deepLink. Also covers a tap that
+  // launched the app from closed. Waits for isReady so the event isn't dropped.
+  const handledPushIds = useRef(new Set<string>());
+  useEffect(() => {
+    if (!isReady) return;
+    const handled = handledPushIds.current;
+    const onOpen = (response: Notifications.NotificationResponse) => {
+      const id = response.notification.request.identifier;
+      if (handled.has(id)) return;
+      handled.add(id);
+      const data = (response.notification.request.content.data || {}) as Record<string, any>;
+      const link = data.deepLink || data.url || data.actionUrl;
+      trackEvent('push_opened', {
+        notificationId: id,
+        campaignId: data.campaignId,
+        title: response.notification.request.content.title,
+      });
+      if (typeof link === 'string' && link) {
+        Linking.openURL(link).catch(err => console.log('[ContentFlow] cannot open push link', link, err));
+      }
+    };
+    Notifications.getLastNotificationResponseAsync().then(r => r && onOpen(r));
+    const sub = Notifications.addNotificationResponseReceivedListener(onOpen);
+    return () => sub.remove();
+  }, [isReady, trackEvent]);
 
   const getBlockContent = useCallback((key: string): BlockContent | null => {
     return content[key] || null;

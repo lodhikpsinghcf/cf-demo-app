@@ -9,6 +9,8 @@ export default function SettingsScreen() {
     consent,
     setConsent,
     setUserId,
+    registerPush,
+    unregisterPush,
     isReady,
     sync,
     trackEvent,
@@ -27,12 +29,45 @@ export default function SettingsScreen() {
   } = useContentFlow();
 
   const [showUserIdModal, setShowUserIdModal] = useState(false);
+  const [pushStatus, setPushStatus] = useState('Not registered');
   const [userIdInput, setUserIdInput] = useState('');
 
   const isOnline = liveStatus?.isOnline ?? false;
 
   const handleConsentToggle = async (key: 'marketing' | 'push' | 'sms' | 'email' | 'locationTracking', value: boolean) => {
     await setConsent({ [key]: value });
+    if (key === 'push') {
+      if (value) {
+        await enablePush();
+      } else {
+        await unregisterPush();
+        setPushStatus('Turned off');
+      }
+    }
+  };
+
+  const enablePush = async () => {
+    const result = await registerPush();
+    switch (result?.status) {
+      case 'registered':
+        setPushStatus(`✅ Registered (${result.provider})`);
+        Alert.alert('Push Registered', `ContentFlow can now send pushes to this device via ${result.provider.toUpperCase()}.\n\nToken: ${result.token.slice(0, 16)}…`);
+        break;
+      case 'permission_denied':
+        setPushStatus('🚫 Permission denied');
+        Alert.alert('Notifications Blocked', 'Allow notifications for this app in your phone Settings, then try again.');
+        break;
+      default: {
+        const reason = result?.error?.message || result?.tokenType || result?.status || 'unknown';
+        setPushStatus(`⚠️ ${result?.status || 'failed'}`);
+        Alert.alert('Push Not Registered', `${reason}\n\nExpo Go can't receive ContentFlow pushes. Use a development build of this app.`);
+      }
+    }
+  };
+
+  const handleEnablePush = async () => {
+    await setConsent({ push: true });
+    await enablePush();
   };
 
   const handleSetUserId = () => {
@@ -159,6 +194,7 @@ export default function SettingsScreen() {
           <SettingRow label="Device ID" value={deviceId ? `${deviceId.slice(0, 8)}...${deviceId.slice(-4)}` : 'Generating...'} />
           <SettingRow label="User ID" value={userId || 'Anonymous'} />
           <SettingRow label="Locale" value={currentLocale.toUpperCase()} />
+          <SettingRow label="Push" value={pushStatus} />
         </View>
       </View>
 
@@ -208,6 +244,10 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <TouchableOpacity style={styles.actionRow} onPress={handleSetUserId}>
             <Text style={styles.actionLabel}>Set User ID</Text>
+            <Text style={styles.actionChevron}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionRow} onPress={handleEnablePush}>
+            <Text style={styles.actionLabel}>Enable Push Notifications</Text>
             <Text style={styles.actionChevron}>→</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionRow} onPress={handleTestEvent}>
