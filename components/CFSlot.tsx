@@ -97,12 +97,37 @@ export function CFSlot({ blockKey, style, children, variant = 'default', showSke
     );
   }
 
+  // Track placeholder impression (slot exists but no server content)
+  useEffect(() => {
+    if (!content && isReady && !hasTrackedImpression && !isLoading) {
+      // Track that this slot was shown with placeholder content
+      trackImpression({
+        key: blockKey,
+        type: 'placeholder',
+        screen: undefined,
+      });
+      setHasTrackedImpression(true);
+    }
+  }, [content, isReady, hasTrackedImpression, isLoading, blockKey, trackImpression]);
+
   // No content from server - show placeholder/fallback
   if (!content) {
+    const handlePlaceholderTap = () => {
+      trackTap({
+        key: blockKey,
+        type: 'placeholder',
+        screen: undefined,
+      });
+    };
+
     return (
-      <View style={[styles.slot, style]}>
+      <TouchableOpacity
+        style={[styles.slot, style]}
+        onPress={handlePlaceholderTap}
+        activeOpacity={0.95}
+      >
         {children}
-      </View>
+      </TouchableOpacity>
     );
   }
 

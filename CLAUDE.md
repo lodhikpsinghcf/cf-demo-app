@@ -62,9 +62,21 @@ Environment variables in `.env`:
 EXPO_PUBLIC_CF_BASE_URL=https://api.contentflow.click
 EXPO_PUBLIC_CF_TENANT_ID=ws_7d0194ac4b94287a59342f21
 EXPO_PUBLIC_CF_SDK_KEY=ws_7d0194ac4b94287a59342f21_test
-EXPO_PUBLIC_CF_WRITE_KEY=ws_7d0194ac4b94287a59342f21_write
+CF_WRITE_KEY=ws_7d0194ac4b94287a59342f21_write
 EXPO_PUBLIC_CF_READ_KEY=ws_7d0194ac4b94287a59342f21_read
 ```
+
+## Registering Blocks
+
+Block definitions live in `constants/blocks.ts`. Register them (dashboard fields + one draft instance per block):
+
+```bash
+npm run register-blocks
+```
+
+Needs `CF_WRITE_KEY` in `.env` (no `EXPO_PUBLIC_` prefix, so it never ships in the app).
+**The server archives every workspace block not in the list it receives** (even with `prune: false`), so always register the full list from `constants/blocks.ts`, never a subset.
+Tags are plain (`title`, not `#title`); the provider reads values by plain tag because `block.get('title')` only looks up `#title`.
 
 ## SDK Endpoints Used
 

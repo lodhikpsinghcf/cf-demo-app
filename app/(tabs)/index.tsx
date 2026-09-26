@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { isReady, userId, engagement, system, sync } = useContentFlow();
+  const { isReady, userId, engagement, system, sync, t } = useContentFlow();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -27,8 +27,8 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good morning</Text>
-          <Text style={styles.userName}>{userId || 'Guest'}</Text>
+          <Text style={styles.greeting}>{t('home.greeting', 'Good morning')}</Text>
+          <Text style={styles.userName}>{userId || t('common.guest', 'Guest')}</Text>
         </View>
         <TouchableOpacity style={styles.notifBtn}>
           <Text style={styles.notifIcon}>🔔</Text>
@@ -37,7 +37,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Stories Slot - Instagram-style */}
-      <CFSlot blockKey="home-stories" style={styles.storiesSlot}>
+      <CFSlot blockKey="home_stories" style={styles.storiesSlot}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
           <StoryItem label="Offers" emoji="🎁" hasNew />
           <StoryItem label="Travel" emoji="✈️" hasNew />
@@ -49,7 +49,7 @@ export default function HomeScreen() {
       </CFSlot>
 
       {/* Hero Banner Slot */}
-      <CFSlot blockKey="home-hero" style={styles.heroSlot}>
+      <CFSlot blockKey="home_hero" style={styles.heroSlot}>
         <LinearGradient colors={['#571FE4', '#7C3AED']} style={styles.heroPlaceholder}>
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>NEW</Text>
@@ -71,7 +71,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Inline Promo Slot 1 */}
-      <CFSlot blockKey="home-inline-1" style={styles.inlineSlot}>
+      <CFSlot blockKey="home_inline_1" style={styles.inlineSlot}>
         <LinearGradient colors={['#F0EBFF', '#E9E3FF']} style={styles.inlinePlaceholder}>
           <Text style={styles.inlineIcon}>✨</Text>
           <View style={styles.inlineContent}>
@@ -107,7 +107,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Mid-Page Promo Slot */}
-      <CFSlot blockKey="home-promo" style={styles.promoSlot}>
+      <CFSlot blockKey="home_promo" style={styles.promoSlot}>
         <LinearGradient colors={['#FFF7ED', '#FFEDD5']} style={styles.promoPlaceholder}>
           <Text style={styles.promoIcon}>🎁</Text>
           <View style={styles.promoContent}>
@@ -121,7 +121,7 @@ export default function HomeScreen() {
       </CFSlot>
 
       {/* Countdown Deal Slot */}
-      <CFSlot blockKey="home-countdown" style={styles.countdownSlot}>
+      <CFSlot blockKey="home_countdown" style={styles.countdownSlot}>
         <LinearGradient colors={['#7C3AED', '#EC4899']} style={styles.countdownPlaceholder}>
           <View style={styles.countdownContent}>
             <Text style={styles.countdownIcon}>⏰</Text>
@@ -155,7 +155,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Inline Promo Slot 2 */}
-      <CFSlot blockKey="home-inline-2" style={styles.inlineSlot}>
+      <CFSlot blockKey="home_inline_2" style={styles.inlineSlot}>
         <LinearGradient colors={['#DBEAFE', '#BFDBFE']} style={styles.inlinePlaceholder}>
           <Text style={styles.inlineIcon}>🎯</Text>
           <View style={styles.inlineContent}>
@@ -169,7 +169,7 @@ export default function HomeScreen() {
       </CFSlot>
 
       {/* Featured Cards Slot */}
-      <CFSlot blockKey="home-featured" style={styles.featuredSlot}>
+      <CFSlot blockKey="home_featured" style={styles.featuredSlot}>
         <LinearGradient colors={['#EEF2FF', '#E0E7FF']} style={styles.featuredPlaceholder}>
           <Text style={styles.featuredIcon}>💳</Text>
           <Text style={styles.featuredTitle}>Featured Cards</Text>
@@ -194,7 +194,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Services Promo Slot */}
-      <CFSlot blockKey="home-services-promo" style={styles.servicesPromoSlot}>
+      <CFSlot blockKey="home_services_promo" style={styles.servicesPromoSlot}>
         <LinearGradient colors={['#F0FDF4', '#DCFCE7']} style={styles.servicesPromoPlaceholder}>
           <View style={styles.servicesPromoLeft}>
             <Text style={styles.servicesPromoIcon}>🏦</Text>
@@ -216,7 +216,7 @@ export default function HomeScreen() {
           <TouchableOpacity><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
         </View>
       </View>
-      <CFSlot blockKey="home-carousel" style={styles.carouselSlot}>
+      <CFSlot blockKey="home_carousel" style={styles.carouselSlot}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselScroll}>
           <CarouselCard title="Save More" subtitle="High-yield savings" colors={['#F0F9FF', '#E0F2FE']} emoji="💰" />
           <CarouselCard title="Invest" subtitle="Start with SAR 100" colors={['#FEF3C7', '#FDE68A']} emoji="📈" />
@@ -226,7 +226,7 @@ export default function HomeScreen() {
       </CFSlot>
 
       {/* Fullwidth Banner Slot */}
-      <CFSlot blockKey="home-fullwidth" style={styles.fullwidthSlot}>
+      <CFSlot blockKey="home_fullwidth" style={styles.fullwidthSlot}>
         <LinearGradient colors={['#1E293B', '#334155']} style={styles.fullwidthPlaceholder}>
           <View style={styles.fullwidthBadge}>
             <Text style={styles.fullwidthBadgeText}>EXCLUSIVE</Text>
@@ -240,7 +240,7 @@ export default function HomeScreen() {
       </CFSlot>
 
       {/* Bottom Banner Slot */}
-      <CFSlot blockKey="home-bottom" style={styles.bottomSlot}>
+      <CFSlot blockKey="home_bottom" style={styles.bottomSlot}>
         <LinearGradient colors={['#F5F5F5', '#E5E5E5']} style={styles.bottomPlaceholder}>
           <Text style={styles.bottomIcon}>📢</Text>
           <Text style={styles.bottomText}>Announcements appear here</Text>

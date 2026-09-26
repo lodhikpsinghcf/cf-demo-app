@@ -19,7 +19,7 @@ const { width, height } = Dimensions.get('window');
 const ONBOARDING_KEY = '@cf_onboarding_complete';
 
 export default function WelcomeScreen() {
-  const { isReady, userId, setConsent, consent, system, identity } = useContentFlow();
+  const { isReady, userId, setConsent, consent, system, identity, t } = useContentFlow();
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -107,41 +107,41 @@ export default function WelcomeScreen() {
           <View style={styles.logoContainer}>
             <Text style={styles.logoIcon}>💳</Text>
           </View>
-          <Text style={styles.appName}>CF Demo</Text>
-          <Text style={styles.tagline}>Experience Dynamic Content</Text>
+          <Text style={styles.appName}>{t('app.name', 'CF Demo')}</Text>
+          <Text style={styles.tagline}>{t('onboarding.welcome', 'Experience Dynamic Content')}</Text>
         </View>
 
         {/* Features */}
         <View style={styles.featuresSection}>
           <FeatureItem
             icon="🎯"
-            title="Personalized Content"
-            description="Dynamic blocks tailored just for you"
+            title={t('onboarding.feature1.title', 'Personalized Content')}
+            description={t('onboarding.feature1.desc', 'Dynamic blocks tailored just for you')}
           />
           <FeatureItem
             icon="⚡"
-            title="Real-time Updates"
-            description="Content syncs instantly from the cloud"
+            title={t('onboarding.feature2.title', 'Real-time Updates')}
+            description={t('onboarding.feature2.desc', 'Content syncs instantly from the cloud')}
           />
           <FeatureItem
             icon="📊"
-            title="Smart Analytics"
-            description="We learn what works best for you"
+            title={t('onboarding.feature3.title', 'Smart Analytics')}
+            description={t('onboarding.feature3.desc', 'We learn what works best for you')}
           />
         </View>
 
         {/* CTA Section */}
         <View style={styles.ctaSection}>
           <TouchableOpacity style={styles.getStartedBtn} onPress={handleGetStarted}>
-            <Text style={styles.getStartedText}>Get Started</Text>
+            <Text style={styles.getStartedText}>{t('onboarding.getStarted', 'Get Started')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.signInBtn} onPress={handleSignIn}>
-            <Text style={styles.signInText}>Already have an account? Sign In</Text>
+            <Text style={styles.signInText}>{t('onboarding.signIn', 'Already have an account? Sign In')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
-            <Text style={styles.skipText}>Continue as Guest</Text>
+            <Text style={styles.skipText}>{t('onboarding.skip', 'Continue as Guest')}</Text>
           </TouchableOpacity>
         </View>
 

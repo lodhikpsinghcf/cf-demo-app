@@ -18,6 +18,7 @@ import {
 } from '@contentflow/sdk/react-native';
 import { registerExpoPush, unregisterExpoPush } from '@contentflow/sdk/expo';
 import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // SDK Configuration from environment variables
@@ -25,9 +26,35 @@ const CF_CONFIG: CFConfig = {
   baseUrl: process.env.EXPO_PUBLIC_CF_BASE_URL || 'https://api.contentflow.click',
   tenantId: process.env.EXPO_PUBLIC_CF_TENANT_ID || '',
   publicKey: process.env.EXPO_PUBLIC_CF_SDK_KEY || '',
-  consent: false,
+  consent: true,
   debug: __DEV__,
 };
+
+// Simplified config for CFSDKProvider
+const CF_SDK_CONFIG: CFConfig = {
+  ...CF_CONFIG,
+  // Event batching config
+  eventBatchSize: 10,      // Batch up to 10 events before sending
+  eventFlushMs: 15000,     // Flush every 15 seconds
+  enableOfflineQueue: true,
+  maxOfflineQueueSize: 100,
+  // Event delivery callbacks
+  onEventsDropped: (info: any) => {
+    console.log('[ContentFlow] Events DROPPED:', {
+      accepted: info.accepted,
+      dropped: info.dropped,
+      reason: info.reason,
+      source: info.source,
+    });
+  },
+  onEventsUncertain: (info: any) => {
+    console.log('[ContentFlow] Events UNCERTAIN:', {
+      status: info.status,
+      reason: info.reason,
+      eventCount: info.events?.length,
+    });
+  },
+} as CFConfig;
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -234,12 +261,18 @@ export interface ContentFlowContextType {
   getScreenBlocks: (screen: string) => CFBlock[];
   getAllBlocks: () => CFBlock[];
 
+  // Block Registration (cards-as-code)
+
   // Push
   registerPush: () => Promise<any>;
   unregisterPush: () => Promise<void>;
 
   // Geolocation
   getIPGeolocation: () => Promise<IPGeolocation | null>;
+  startLocationTracking: () => Promise<boolean>;
+  stopLocationTracking: () => void;
+  getCurrentLocation: () => Promise<{ lat: number; lng: number } | null>;
+  isTrackingLocation: boolean;
 
   // Lifecycle
   flush: () => Promise<void>;
@@ -249,6 +282,8 @@ export interface ContentFlowContextType {
   // Localization
   setLocale: (locale: string) => Promise<void>;
   t: (key: string, fallback?: string) => string;
+  fetchStrings: (locale?: string) => Promise<Record<string, string> | null>;
+  currentLocale: string;
 }
 
 const ContentFlowContext = createContext<ContentFlowContextType | null>(null);
@@ -266,31 +301,50 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<Record<string, BlockContent>>({});
   const [error, setError] = useState<string | null>(null);
   const [liveStatus, setLiveStatus] = useState<LiveStatus | null>(null);
+  const [isTrackingLocation, setIsTrackingLocation] = useState(false);
+  const [currentLocale, setCurrentLocale] = useState('en');
+  const [strings, setStrings] = useState<Record<string, string>>({});
 
   const initialized = useRef(false);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
   // Convert CFBlock to BlockContent
   const blockToContent = useCallback((block: CFBlock): BlockContent => {
-    const cta = block.get('cta') as { label?: string; url?: string } | null;
+    // Fields are registered with plain tags ("title"), but block.get() only looks up "#title".
+    // Empty strings (unfilled seeded fields) count as absent so slot placeholders still show.
+    const read = (b: CFBlock, tag: string): any => {
+      const raw = b.values?.[tag] ?? b.get(tag);
+      return raw === '' || raw === null ? undefined : raw;
+    };
+    const v = (tag: string) => read(block, tag);
+    const toItem = (item: CFBlock) => ({
+      title: item.title || read(item, 'title'),
+      subtitle: read(item, 'subtitle'),
+      imageUrl: item.imageUrl || read(item, 'image'),
+      icon: read(item, 'icon'),
+      url: read(item, 'url'),
+    });
+    const collection = block.getCollection?.('items');
+
+    const cta = v('cta') as { label?: string; url?: string } | undefined;
+    const ctaLabel = cta?.label || block.ctaLabel || v('cta_label');
+    const ctaUrl = cta?.url || v('cta_url') || '';
     return {
       key: block.key,
       instanceId: block.instanceId,
       screen: block.screen,
-      type: (block.get('type') as string) || 'default',
-      title: block.title || (block.get('title') as string | undefined),
-      subtitle: block.get('subtitle') as string | undefined,
-      description: block.body || (block.get('description') as string | undefined),
-      imageUrl: block.imageUrl || (block.get('imageUrl') as string) || (block.get('image_url') as string | undefined),
-      icon: block.get('icon') as string | undefined,
-      backgroundColor: block.get('backgroundColor') as string || block.get('background_color') as string | undefined,
-      gradientEnd: block.get('gradientEnd') as string || block.get('gradient_end') as string | undefined,
-      badge: block.get('badge') as string | undefined,
-      value: block.get('value') as string | undefined,
-      cta: cta ? {
-        label: cta.label || block.ctaLabel || (block.get('cta_label') as string) || '',
-        url: cta.url || (block.get('cta_url') as string) || '',
-      } : block.ctaLabel ? { label: block.ctaLabel, url: block.get('cta_url') as string || '' } : undefined,
-      items: block.getCollection?.('items') || (block.get('items') as any[]),
+      type: v('type') || 'default',
+      title: block.title || v('title'),
+      subtitle: v('subtitle'),
+      description: block.body || v('description') || v('body'),
+      imageUrl: block.imageUrl || v('image') || v('imageUrl') || v('image_url'),
+      icon: v('icon'),
+      backgroundColor: v('backgroundColor') || v('background_color'),
+      gradientEnd: v('gradientEnd') || v('gradient_end'),
+      badge: v('badge'),
+      value: v('value'),
+      cta: ctaLabel ? { label: ctaLabel, url: ctaUrl } : undefined,
+      items: collection?.length ? collection.map(toItem) : v('items'),
     };
   }, []);
 
@@ -302,10 +356,17 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     async function init() {
       try {
         setIsInitializing(true);
+        console.log('[ContentFlow] Starting SDK initialization...');
+        console.log('[ContentFlow] Config:', {
+          baseUrl: CF_CONFIG.baseUrl,
+          tenantId: CF_CONFIG.tenantId,
+          publicKey: CF_CONFIG.publicKey ? `${CF_CONFIG.publicKey.slice(0, 20)}...` : 'MISSING',
+        });
 
         // Load stored user ID
         const storedUserId = await AsyncStorage.getItem(STORAGE_KEYS.USER_ID);
         if (storedUserId) {
+          console.log('[ContentFlow] Restoring user ID:', storedUserId);
           setUserIdState(storedUserId);
           await client.setUserId(storedUserId);
         }
@@ -321,15 +382,27 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
         }
 
         // Identify device
+        console.log('[ContentFlow] Calling identify...');
         const receipt = await client.identify();
+        console.log('[ContentFlow] Identify response:', receipt);
         if (receipt) {
-          setDeviceId(client.cfg?.deviceId || null);
+          const newDeviceId = client.cfg?.deviceId || null;
+          console.log('[ContentFlow] Device ID:', newDeviceId);
+          setDeviceId(newDeviceId);
+
+          // Enable analytics consent based on server response or default to true
+          if (receipt.consent !== false) {
+            console.log('[ContentFlow] Enabling analytics consent');
+            await client.setConsent(true);
+          }
         }
 
         // Start live updates
+        console.log('[ContentFlow] Starting live updates...');
         await client.start();
 
         // Get initial content (blocks keyed by block.key)
+        console.log('[ContentFlow] Syncing blocks...');
         const blocks = await client.sync();
         if (blocks) {
           const contentMap: Record<string, BlockContent> = {};
@@ -337,7 +410,29 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
             contentMap[block.key] = blockToContent(block);
           }
           setContent(contentMap);
-          console.log(`[ContentFlow] Synced ${blocks.length} blocks`);
+          console.log(`[ContentFlow] Synced ${blocks.length} blocks:`, blocks.map(b => b.key));
+        } else {
+          console.log('[ContentFlow] No blocks returned from sync');
+        }
+
+        // Fetch initial strings for default locale
+        console.log('[ContentFlow] Fetching initial strings...');
+        try {
+          const apiBase = CF_CONFIG.baseUrl || 'https://api.contentflow.click/sdk/v1';
+          const stringsResponse = await fetch(`${apiBase}/strings?locale=en`, {
+            method: 'GET',
+            headers: {
+              'X-CF-Key': CF_CONFIG.publicKey,
+              'X-Tenant-Id': CF_CONFIG.tenantId || '',
+            },
+          });
+          const stringsResult = await stringsResponse.json();
+          if (stringsResponse.ok && stringsResult.data?.strings) {
+            setStrings(stringsResult.data.strings);
+            console.log('[ContentFlow] Loaded', Object.keys(stringsResult.data.strings).length, 'strings');
+          }
+        } catch (stringsErr) {
+          console.log('[ContentFlow] Strings fetch skipped:', stringsErr);
         }
 
         console.log('[ContentFlow] SDK initialized successfully');
@@ -412,76 +507,136 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
   }, [client, consent]);
 
   const trackEvent = useCallback((eventType: string, data?: Record<string, any>) => {
-    if (!client) return;
+    if (!client || !isReady) {
+      console.log('[ContentFlow] trackEvent: device not identified yet');
+      return;
+    }
+    console.log('[ContentFlow] Tracking event:', eventType, data);
     client.track(eventType, { key: eventType, ...data });
-  }, [client]);
+  }, [client, isReady]);
 
   // Typed event methods (v2.0)
   const commerce = useCallback((event: CommerceEvent) => {
-    if (!client) return;
-    client.track(`commerce:${event.action}`, { key: `commerce:${event.action}`, ...event });
-  }, [client]);
+    if (!client || !isReady) return;
+    const eventType = `commerce:${event.action}`;
+    console.log('[ContentFlow] Track commerce:', eventType);
+    client.track(eventType, { key: eventType, ...event });
+  }, [client, isReady]);
 
   const engagement = useCallback((event: EngagementEvent) => {
-    if (!client) return;
-    client.track(`engagement:${event.action}`, { key: `engagement:${event.action}`, ...event });
-  }, [client]);
+    if (!client || !isReady) return;
+    const eventType = `engagement:${event.action}`;
+    console.log('[ContentFlow] Track engagement:', eventType);
+    client.track(eventType, { key: eventType, ...event });
+  }, [client, isReady]);
 
   const identityEvent = useCallback((event: IdentityEvent) => {
-    if (!client) return;
+    if (!client || !isReady) return;
     client.track(`identity:${event.action}`, { key: `identity:${event.action}`, ...event });
-  }, [client]);
+  }, [client, isReady]);
 
   const growth = useCallback((event: GrowthEvent) => {
-    if (!client) return;
+    if (!client || !isReady) return;
     client.track(`growth:${event.action}`, { key: `growth:${event.action}`, ...event });
-  }, [client]);
+  }, [client, isReady]);
 
   const accountEvent = useCallback((event: AccountEvent) => {
-    if (!client) return;
+    if (!client || !isReady) return;
     client.track(`account:${event.action}`, { key: `account:${event.action}`, ...event });
-  }, [client]);
+  }, [client, isReady]);
 
   const systemEvent = useCallback((event: SystemEvent) => {
-    if (!client) return;
+    if (!client || !isReady) return;
     client.track(`system:${event.action}`, { key: `system:${event.action}`, ...event });
-  }, [client]);
+  }, [client, isReady]);
 
   const locationEvent = useCallback((event: LocationEvent) => {
-    if (!client) return;
+    if (!client || !isReady) return;
     client.track(`location:${event.action}`, { key: `location:${event.action}`, ...event });
-  }, [client]);
+  }, [client, isReady]);
 
   const trackSignUp = useCallback(async (newUserId: string, traits?: UserTraits) => {
     if (!client) return;
     await setUserId(newUserId);
-    await client.trackSignUp({
+
+    // newUserId is typically the email
+    const signUpData = {
       username: newUserId,
       fullName: traits?.name as string,
-      email: traits?.email as string,
+      email: (traits?.email as string) || newUserId, // fallback to userId if email not in traits
       phone: traits?.phone as string,
+    };
+
+    console.log('[ContentFlow] trackSignUp data:', signUpData);
+    await client.trackSignUp(signUpData);
+
+    // Also track as identity event for unified tracking
+    client.track('identity:sign_up', {
+      key: 'sign_up',
+      screen: 'sign_up',
     });
+    console.log('[ContentFlow] Tracked sign_up event');
   }, [client, setUserId]);
 
   const trackSignIn = useCallback(async (existingUserId: string) => {
     if (!client) return;
     await setUserId(existingUserId);
-    await client.trackSignIn({ username: existingUserId });
+
+    const signInData = {
+      username: existingUserId,
+      email: existingUserId, // userId is typically the email
+    };
+
+    console.log('[ContentFlow] trackSignIn data:', signInData);
+    await client.trackSignIn(signInData);
+
+    // Also track as identity event for unified tracking
+    client.track('identity:sign_in', {
+      key: 'sign_in',
+      screen: 'sign_in',
+    });
+    console.log('[ContentFlow] Tracked sign_in event');
   }, [client, setUserId]);
 
   const trackImpression = useCallback((block: CFBlock | BlockContent) => {
-    if (!client) return;
-    if ('get' in block && typeof block.get === 'function') {
-      client.trackImpression(block as CFBlock);
+    if (!client || !isReady) {
+      console.log('[ContentFlow] Skipping impression - device not identified yet');
+      return;
     }
-  }, [client]);
+    if ('get' in block && typeof block.get === 'function') {
+      // Real CFBlock from SDK
+      client.trackImpression(block as CFBlock);
+      console.log('[ContentFlow] Tracked impression (CFBlock):', block.key);
+    } else {
+      // BlockContent - use generic tracking
+      const content = block as BlockContent;
+      client.track('content:impression', {
+        key: content.key,
+        screen: content.screen,
+      });
+      console.log('[ContentFlow] Tracked impression (BlockContent):', content.key);
+    }
+  }, [client, isReady]);
 
   const trackTap = useCallback((block: CFBlock | BlockContent) => {
-    if (!client) return;
-    if ('get' in block && typeof block.get === 'function') {
-      client.trackTap(block as CFBlock);
+    if (!client || !isReady) {
+      console.log('[ContentFlow] Skipping tap - device not identified yet');
+      return;
     }
-  }, [client]);
+    if ('get' in block && typeof block.get === 'function') {
+      // Real CFBlock from SDK
+      client.trackTap(block as CFBlock);
+      console.log('[ContentFlow] Tracked tap (CFBlock):', block.key);
+    } else {
+      // BlockContent - use generic tracking
+      const content = block as BlockContent;
+      client.track('content:tap', {
+        key: content.key,
+        screen: content.screen,
+      });
+      console.log('[ContentFlow] Tracked tap (BlockContent):', content.key);
+    }
+  }, [client, isReady]);
 
   const sync = useCallback(async () => {
     if (!client) return;
@@ -549,20 +704,108 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     await AsyncStorage.removeItem(STORAGE_KEYS.USER_ID);
   }, [client]);
 
+  // Fetch strings from backend
+  const fetchStringsInternal = useCallback(async (locale: string): Promise<Record<string, string> | null> => {
+    console.log('[ContentFlow] Fetching strings for locale:', locale);
+
+    try {
+      const apiBase = CF_CONFIG.baseUrl || 'https://api.contentflow.click/sdk/v1';
+      const response = await fetch(`${apiBase}/strings?locale=${locale}`, {
+        method: 'GET',
+        headers: {
+          'X-CF-Key': CF_CONFIG.publicKey,
+          'X-Tenant-Id': CF_CONFIG.tenantId || '',
+        },
+      });
+
+      const result = await response.json();
+      console.log('[ContentFlow] Strings response:', response.status, JSON.stringify(result).slice(0, 500));
+
+      if (response.ok && result.data?.strings) {
+        return result.data.strings;
+      }
+      return null;
+    } catch (err) {
+      console.error('[ContentFlow] Fetch strings error:', err);
+      return null;
+    }
+  }, []);
+
   const setLocale = useCallback(async (locale: string) => {
     if (!client) return;
-    await client.setLocale(locale);
-  }, [client]);
+    console.log('[ContentFlow] Setting locale to:', locale);
+    setCurrentLocale(locale);
 
+    // Clear previous strings cache immediately
+    setStrings({});
+
+    // Notify SDK of locale change
+    await client.setLocale(locale);
+
+    // Fetch strings from backend and cache locally
+    const fetchedStrings = await fetchStringsInternal(locale);
+    // Always update strings - use fetched or empty object
+    setStrings(fetchedStrings || {});
+    console.log('[ContentFlow] Cached', Object.keys(fetchedStrings || {}).length, 'strings for locale:', locale);
+
+    // Track locale change event
+    if (isReady) {
+      client.track('content:locale_change', {
+        key: 'locale_change',
+        screen: locale,
+      });
+      console.log('[ContentFlow] Tracked locale change event for:', locale);
+    }
+  }, [client, isReady, fetchStringsInternal]);
+
+  // Translation function with tracking
   const t = useCallback((key: string, fallback?: string): string => {
-    if (!client) return fallback || key;
-    return client.t(key, fallback);
-  }, [client]);
+    // First check local strings cache
+    if (strings[key]) {
+      // Track string impression
+      if (client && isReady) {
+        client.track('content:string_impression', {
+          key: key,
+          screen: currentLocale,
+        });
+      }
+      console.log(`[ContentFlow] t('${key}') = '${strings[key]}' (from cache)`);
+      return strings[key];
+    }
+
+    // Fallback to SDK's t() function
+    if (client) {
+      const value = client.t(key, fallback);
+      if (value !== fallback && value !== key) {
+        console.log(`[ContentFlow] t('${key}') = '${value}' (from SDK)`);
+        return value;
+      }
+    }
+
+    return fallback || key;
+  }, [client, isReady, strings, currentLocale]);
+
+  // Public fetchStrings that also updates state
+  const fetchStrings = useCallback(async (locale?: string): Promise<Record<string, string> | null> => {
+    const targetLocale = locale || currentLocale;
+    const fetchedStrings = await fetchStringsInternal(targetLocale);
+    if (fetchedStrings) {
+      setStrings(fetchedStrings);
+    }
+    return fetchedStrings;
+  }, [currentLocale, fetchStringsInternal]);
 
   const flush = useCallback(async () => {
     if (!client) return;
-    // The SDK handles flushing internally, but we can force a sync
-    await client.sync();
+    console.log('[ContentFlow] Flushing events...');
+    // Flush the event queue
+    if (typeof (client as any).flush === 'function') {
+      await (client as any).flush();
+      console.log('[ContentFlow] Events flushed successfully');
+    } else {
+      await client.sync();
+      console.log('[ContentFlow] Sync completed (includes event flush)');
+    }
   }, [client]);
 
   const getIPGeolocation = useCallback(async (): Promise<IPGeolocation | null> => {
@@ -570,7 +813,7 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     // IP geolocation would need to be fetched from the SDK's geo endpoint
     // For now, return null as the client method may not be directly exposed
     try {
-      const response = await fetch(`${CF_CONFIG.baseUrl}/sdk/v1/geo/ip`, {
+      const response = await fetch(`${CF_CONFIG.baseUrl}/geo/ip`, {
         headers: {
           'X-CF-Key': CF_CONFIG.publicKey,
           'X-Tenant-Id': CF_CONFIG.tenantId || '',
@@ -584,6 +827,91 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     }
     return null;
   }, [client]);
+
+  const getCurrentLocation = useCallback(async (): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[ContentFlow] Location permission denied');
+        return null;
+      }
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      return {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+      };
+    } catch (err) {
+      console.error('[ContentFlow] Get location error:', err);
+      return null;
+    }
+  }, []);
+
+  const startLocationTracking = useCallback(async (): Promise<boolean> => {
+    if (!client || isTrackingLocation) return false;
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[ContentFlow] Location permission denied');
+        locationEvent({
+          action: 'location_permission',
+          permissionStatus: 'denied',
+        });
+        return false;
+      }
+
+      locationEvent({
+        action: 'location_permission',
+        permissionStatus: 'granted',
+      });
+
+      console.log('[ContentFlow] Starting location tracking...');
+
+      locationSubscription.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          distanceInterval: 50, // meters
+          timeInterval: 30000, // 30 seconds
+        },
+        (location) => {
+          console.log('[ContentFlow] Location update:', location.coords.latitude, location.coords.longitude);
+          locationEvent({
+            action: 'location_update',
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
+            accuracy: location.coords.accuracy || undefined,
+            source: 'gps',
+          });
+        }
+      );
+
+      setIsTrackingLocation(true);
+      return true;
+    } catch (err) {
+      console.error('[ContentFlow] Start location tracking error:', err);
+      return false;
+    }
+  }, [client, isTrackingLocation, locationEvent]);
+
+  const stopLocationTracking = useCallback(() => {
+    if (locationSubscription.current) {
+      locationSubscription.current.remove();
+      locationSubscription.current = null;
+      setIsTrackingLocation(false);
+      console.log('[ContentFlow] Location tracking stopped');
+    }
+  }, []);
+
+  // Cleanup location tracking on unmount
+  useEffect(() => {
+    return () => {
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+      }
+    };
+  }, []);
 
   const contextValue: ContentFlowContextType = {
     // State
@@ -630,12 +958,18 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     getScreenBlocks,
     getAllBlocks,
 
+    // Block registration (cards-as-code)
+
     // Push
     registerPush: registerPushHandler,
     unregisterPush: unregisterPushHandler,
 
     // Geolocation
     getIPGeolocation,
+    startLocationTracking,
+    stopLocationTracking,
+    getCurrentLocation,
+    isTrackingLocation,
 
     // Lifecycle
     flush,
@@ -645,6 +979,8 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     // Localization
     setLocale,
     t,
+    fetchStrings,
+    currentLocale,
   };
 
   return (

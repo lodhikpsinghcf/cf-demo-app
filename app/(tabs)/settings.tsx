@@ -15,6 +15,15 @@ export default function SettingsScreen() {
     config,
     reset,
     liveStatus,
+    startLocationTracking,
+    stopLocationTracking,
+    getCurrentLocation,
+    isTrackingLocation,
+    flush,
+    setLocale,
+    t,
+    fetchStrings,
+    currentLocale,
   } = useContentFlow();
 
   const [showUserIdModal, setShowUserIdModal] = useState(false);
@@ -44,7 +53,16 @@ export default function SettingsScreen() {
       source: 'settings',
       timestamp: new Date().toISOString(),
     });
-    Alert.alert('Event Sent', 'Test event tracked successfully');
+    Alert.alert('Event Queued', 'Test event added to queue. Tap "Flush Events" to send immediately.');
+  };
+
+  const handleFlushEvents = async () => {
+    try {
+      await flush();
+      Alert.alert('Events Flushed', 'All queued events sent to server. Check console for response.');
+    } catch (e) {
+      Alert.alert('Flush Failed', String(e));
+    }
   };
 
   const handleSync = async () => {
@@ -74,6 +92,60 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleToggleLocationTracking = async () => {
+    if (isTrackingLocation) {
+      stopLocationTracking();
+      Alert.alert('Location Tracking', 'Location tracking stopped');
+    } else {
+      const started = await startLocationTracking();
+      if (started) {
+        Alert.alert('Location Tracking', 'Location tracking started');
+      } else {
+        Alert.alert('Location Tracking', 'Failed to start - permission denied?');
+      }
+    }
+  };
+
+  const handleGetCurrentLocation = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      Alert.alert('Current Location', `Lat: ${location.lat.toFixed(6)}\nLng: ${location.lng.toFixed(6)}`);
+    } else {
+      Alert.alert('Location Error', 'Could not get current location');
+    }
+  };
+
+  const handleLocaleChange = async (locale: string) => {
+    try {
+      await setLocale(locale);
+      Alert.alert('Locale Changed', `App language set to: ${locale}`);
+    } catch (e) {
+      Alert.alert('Error', String(e));
+    }
+  };
+
+  const handleFetchStrings = async () => {
+    try {
+      const strings = await fetchStrings();
+      if (strings) {
+        const keys = Object.keys(strings);
+        Alert.alert('Strings Fetched', `Got ${keys.length} strings: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''}`);
+      } else {
+        Alert.alert('No Strings', 'No strings returned for this locale');
+      }
+    } catch (e) {
+      Alert.alert('Error', String(e));
+    }
+  };
+
+  const locales = [
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Español' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'hi', label: 'हिन्दी' },
+  ];
+
   return (
     <ScrollView style={styles.container}>
       {/* SDK Status */}
@@ -86,6 +158,47 @@ export default function SettingsScreen() {
           <SettingRow label="Live State" value={liveStatus?.state || 'stopped'} />
           <SettingRow label="Device ID" value={deviceId ? `${deviceId.slice(0, 8)}...${deviceId.slice(-4)}` : 'Generating...'} />
           <SettingRow label="User ID" value={userId || 'Anonymous'} />
+          <SettingRow label="Locale" value={currentLocale.toUpperCase()} />
+        </View>
+      </View>
+
+      {/* Localization */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Localization</Text>
+        <View style={styles.card}>
+          <View style={styles.localeRow}>
+            {locales.map((loc) => (
+              <TouchableOpacity
+                key={loc.code}
+                style={[
+                  styles.localeBtn,
+                  currentLocale === loc.code && styles.localeBtnActive,
+                ]}
+                onPress={() => handleLocaleChange(loc.code)}
+              >
+                <Text
+                  style={[
+                    styles.localeBtnText,
+                    currentLocale === loc.code && styles.localeBtnTextActive,
+                  ]}
+                >
+                  {loc.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.testKeyRow}>
+            <Text style={styles.testKeyLabel}>test.key:</Text>
+            <Text style={styles.testKeyValue}>{t('test.key', '(not set)')}</Text>
+          </View>
+          <View style={styles.testKeyRow}>
+            <Text style={styles.testKeyLabel}>test2.key:</Text>
+            <Text style={styles.testKeyValue}>{t('test2.key', '(not set)')}</Text>
+          </View>
+          <TouchableOpacity style={styles.actionRow} onPress={handleFetchStrings}>
+            <Text style={styles.actionLabel}>Fetch Strings ({currentLocale})</Text>
+            <Text style={styles.actionChevron}>→</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -101,8 +214,22 @@ export default function SettingsScreen() {
             <Text style={styles.actionLabel}>Send Test Event</Text>
             <Text style={styles.actionChevron}>→</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.actionRow} onPress={handleFlushEvents}>
+            <Text style={styles.actionLabel}>Flush Events Now</Text>
+            <Text style={styles.actionChevron}>→</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionRow} onPress={handleSync}>
             <Text style={styles.actionLabel}>Force Sync Content</Text>
+            <Text style={styles.actionChevron}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionRow} onPress={handleGetCurrentLocation}>
+            <Text style={styles.actionLabel}>Get Current Location</Text>
+            <Text style={styles.actionChevron}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionRow} onPress={handleToggleLocationTracking}>
+            <Text style={[styles.actionLabel, isTrackingLocation && { color: '#22c55e' }]}>
+              {isTrackingLocation ? '● Stop Location Tracking' : 'Start Location Tracking'}
+            </Text>
             <Text style={styles.actionChevron}>→</Text>
           </TouchableOpacity>
         </View>
@@ -369,4 +496,46 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalConfirmText: { fontSize: 15, color: '#fff', fontWeight: '500' },
+  localeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 12,
+    gap: 8,
+  },
+  localeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  localeBtnActive: {
+    backgroundColor: '#571FE4',
+  },
+  localeBtnText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  localeBtnTextActive: {
+    color: '#fff',
+  },
+  testKeyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e5e5',
+  },
+  testKeyLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'monospace',
+  },
+  testKeyValue: {
+    fontSize: 14,
+    color: '#571FE4',
+    fontWeight: '500',
+  },
 });

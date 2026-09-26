@@ -14,14 +14,22 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.contentflow.demo"
+      "bundleIdentifier": "com.contentflow.demo",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to provide personalized content and nearby offers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to provide personalized content and nearby offers."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#571FE4"
       },
-      "package": "com.contentflow.demo"
+      "package": "com.contentflow.demo",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,7 +37,14 @@
     },
     "scheme": "cfdemo",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to show nearby offers and personalized content.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to show nearby offers and personalized content."
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -42,7 +42,7 @@ Edit `.env` with your ContentFlow credentials:
 EXPO_PUBLIC_CF_BASE_URL=https://api.contentflow.click
 EXPO_PUBLIC_CF_TENANT_ID=your_workspace_id
 EXPO_PUBLIC_CF_SDK_KEY=your_sdk_key
-EXPO_PUBLIC_CF_WRITE_KEY=your_write_key
+CF_WRITE_KEY=your_write_key
 EXPO_PUBLIC_CF_READ_KEY=your_read_key
 
 # App Configuration

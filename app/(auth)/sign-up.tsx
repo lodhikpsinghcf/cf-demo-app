@@ -71,9 +71,10 @@ export default function SignUpScreen() {
     // Save consent
     await setConsent(consent);
 
-    // Track sign up with traits
+    // Track sign up with traits (include email explicitly)
     trackSignUp(email.toLowerCase().trim(), {
       name: name.trim(),
+      email: email.toLowerCase().trim(),
       phone: phone.trim(),
       signUpMethod: 'email',
     });

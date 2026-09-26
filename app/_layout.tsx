@@ -1,3 +1,6 @@
+// Crypto polyfill must be imported first
+import '../utils/crypto-polyfill';
+
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ContentFlowProvider } from '../providers/ContentFlowProvider';
