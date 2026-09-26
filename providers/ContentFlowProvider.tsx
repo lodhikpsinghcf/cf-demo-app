@@ -20,6 +20,7 @@ import { registerExpoPush, unregisterExpoPush } from '@contentflow/sdk/expo';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BLOCK_LAYOUTS } from '../constants/blocks';
 
 // SDK Configuration from environment variables
 const CF_CONFIG: CFConfig = {
@@ -29,6 +30,12 @@ const CF_CONFIG: CFConfig = {
   consent: true,
   debug: __DEV__,
 };
+
+// Uploaded images come back as "/api/v1/content/<id>/raw"; the phone needs the full URL.
+const CF_ORIGIN = (CF_CONFIG.baseUrl || '').match(/^https?:\/\/[^/]+/)?.[0] || 'https://api.contentflow.click';
+function absoluteUrl(url?: string): string | undefined {
+  return url?.startsWith('/') ? `${CF_ORIGIN}${url}` : url;
+}
 
 // Simplified config for CFSDKProvider
 const CF_SDK_CONFIG: CFConfig = {
@@ -320,7 +327,7 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
     const toItem = (item: CFBlock) => ({
       title: item.title || read(item, 'title'),
       subtitle: read(item, 'subtitle'),
-      imageUrl: item.imageUrl || read(item, 'image'),
+      imageUrl: absoluteUrl(item.imageUrl || read(item, 'image')),
       icon: read(item, 'icon'),
       url: read(item, 'url'),
     });
@@ -333,11 +340,11 @@ function ContentFlowInner({ children }: { children: ReactNode }) {
       key: block.key,
       instanceId: block.instanceId,
       screen: block.screen,
-      type: v('type') || 'default',
+      type: v('type') || BLOCK_LAYOUTS[block.key] || 'default',
       title: block.title || v('title'),
       subtitle: v('subtitle'),
       description: block.body || v('description') || v('body'),
-      imageUrl: block.imageUrl || v('image') || v('imageUrl') || v('image_url'),
+      imageUrl: absoluteUrl(block.imageUrl || v('image') || v('imageUrl') || v('image_url')),
       icon: v('icon'),
       backgroundColor: v('backgroundColor') || v('background_color'),
       gradientEnd: v('gradientEnd') || v('gradient_end'),

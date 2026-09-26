@@ -154,6 +154,53 @@ export const APP_BLOCK_DEFINITIONS: BlockDefinition[] = [
   ]},
 ];
 
+// How CFSlot draws each block. Chosen in code, not in the dashboard: a block's fields
+// are only useful in the layout built for them (e.g. only 'hero' shows image + subtitle).
+export type BlockLayout =
+  | 'hero' | 'banner' | 'card' | 'promo' | 'inline' | 'reward'
+  | 'carousel' | 'story' | 'grid' | 'countdown' | 'fullwidth' | 'spotlight';
+
+export const BLOCK_LAYOUTS: Record<string, BlockLayout> = {
+  home_stories: 'story',
+  home_hero: 'hero',
+  home_inline_1: 'inline',
+  home_inline_2: 'inline',
+  home_promo: 'promo',
+  home_countdown: 'countdown',
+  home_featured: 'card',
+  home_services_promo: 'promo',
+  home_carousel: 'carousel',
+  home_fullwidth: 'fullwidth',
+  home_bottom: 'promo',
+
+  wallet_promo: 'promo',
+  wallet_upgrade: 'banner',
+  wallet_card_offers: 'carousel',
+  wallet_insights: 'card',
+  wallet_rewards: 'reward',
+  wallet_cashback: 'reward',
+  wallet_goals: 'card',
+  wallet_bottom: 'promo',
+
+  travel_flash: 'banner',
+  travel_hero: 'hero',
+  travel_spotlight: 'spotlight',
+  travel_promo: 'promo',
+  travel_lastminute: 'promo',
+  travel_hotels: 'carousel',
+  travel_miles: 'reward',
+  travel_bottom: 'promo',
+
+  food_flash: 'banner',
+  food_hero: 'hero',
+  food_promo: 'promo',
+  food_recommended: 'carousel',
+  food_cuisines: 'carousel',
+  food_cuisine_grid: 'grid',
+  food_rewards: 'reward',
+  food_bottom: 'promo',
+};
+
 // Payload for POST /cards/sync. Tags stay plain ("title"); the server needs an `id` per field.
 // Screen blocks get one draft instance to edit; item blocks are created from inside their list.
 export function buildBlockManifest() {

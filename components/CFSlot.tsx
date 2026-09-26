@@ -447,7 +447,7 @@ export function CFSlot({ blockKey, style, children, variant = 'default', showSke
               {content.icon && <Text style={styles.defaultIcon}>{content.icon}</Text>}
               <View style={styles.defaultText}>
                 {content.title && <Text style={styles.defaultTitle}>{content.title}</Text>}
-                {content.description && <Text style={styles.defaultDesc}>{content.description}</Text>}
+                {(content.description || content.subtitle) && <Text style={styles.defaultDesc}>{content.description || content.subtitle}</Text>}
               </View>
             </View>
             {content.cta?.label && <Text style={styles.defaultCta}>{content.cta.label} →</Text>}
