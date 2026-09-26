@@ -62,6 +62,13 @@
           "imageWidth": 200
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e3ae850e-10da-44b0-8627-b8c03c878136"
+      }
+    },
+    "owner": "lodhikpsingh"
   }
 }
