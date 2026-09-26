@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "339805712842",
+    "project_id": "cf-demo-app",
+    "storage_bucket": "cf-demo-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:339805712842:android:9170e6407260044eaddf33",
+        "android_client_info": {
+          "package_name": "com.contentflow.demo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgmLHmM6WLoGIt1KttOZIXcUhMzTviqv0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
